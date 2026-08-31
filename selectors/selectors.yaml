@@ -1,0 +1,102 @@
+# The ONLY place X DOM selectors live (E-06).
+# Every entry: a primary and >=1 fallback. Prefer data-testid over structure.
+# The canary (E-07) visits each surface and asserts every key still resolves.
+version: 1
+updated: "2026-08-31"
+
+surfaces:
+  home:
+    url: "https://x.com/home"
+    keys: [timeline, tweet, tweet_text, logged_in_marker]
+  profile:
+    url_template: "https://x.com/{handle}"
+    keys: [timeline, tweet, tweet_text, tweet_time, tweet_link]
+  post:
+    url_template: "https://x.com/{handle}/status/{id}"
+    keys: [tweet, tweet_text, reply_button, replies_region]
+  search:
+    url_template: "https://x.com/search?q={query}&f=live"
+    keys: [timeline, tweet, tweet_text]
+  compose:
+    url: "https://x.com/compose/post"
+    keys: [composer, post_button]
+  notifications:
+    url: "https://x.com/notifications/mentions"
+    keys: [timeline, tweet, tweet_text]
+
+selectors:
+  logged_in_marker:
+    primary: '[data-testid="SideNav_AccountSwitcher_Button"]'
+    fallbacks:
+      - '[aria-label="Account menu"]'
+      - 'a[href="/home"][aria-label]'
+  timeline:
+    primary: '[aria-label="Timeline: Your Home Timeline"]'
+    fallbacks:
+      - '[data-testid="primaryColumn"] section'
+      - 'main [role="region"]'
+  tweet:
+    primary: 'article[data-testid="tweet"]'
+    fallbacks:
+      - 'article[role="article"]'
+      - 'div[data-testid="cellInnerDiv"] article'
+  tweet_text:
+    primary: '[data-testid="tweetText"]'
+    fallbacks:
+      - 'div[lang]'
+  tweet_time:
+    primary: 'time'
+    fallbacks:
+      - 'a[href*="/status/"] time'
+  tweet_link:
+    primary: 'a[href*="/status/"]'
+    fallbacks:
+      - 'a[role="link"][href*="/status/"]'
+  reply_button:
+    primary: '[data-testid="reply"]'
+    fallbacks:
+      - 'button[aria-label*="Reply"]'
+  replies_region:
+    primary: 'div[aria-label*="Timeline: Conversation"]'
+    fallbacks:
+      - 'section[role="region"]'
+  composer:
+    primary: '[data-testid="tweetTextarea_0"]'
+    fallbacks:
+      - 'div[role="textbox"][contenteditable="true"]'
+  post_button:
+    primary: '[data-testid="tweetButton"]'
+    fallbacks:
+      - '[data-testid="tweetButtonInline"]'
+      - 'button[data-testid*="tweetButton"]'
+  like_count:
+    primary: '[data-testid="like"]'
+    fallbacks:
+      - 'button[aria-label*="Like"]'
+  repost_count:
+    primary: '[data-testid="retweet"]'
+    fallbacks:
+      - 'button[aria-label*="Repost"]'
+  delete_menu:
+    primary: '[data-testid="caret"]'
+    fallbacks:
+      - 'button[aria-label="More"]'
+  delete_confirm:
+    primary: '[data-testid="confirmationSheetConfirm"]'
+    fallbacks:
+      - 'button[data-testid*="confirm"]'
+
+# Challenge / interstitial fingerprints (E-05). Presence of any => halt writes.
+challenges:
+  login_wall:
+    - 'input[name="text"][autocomplete="username"]'
+    - 'a[href="/login"]'
+  unusual_activity:
+    - 'text=unusual activity'
+    - 'text=Verify your identity'
+  captcha_arkose:
+    - 'iframe[src*="arkoselabs"]'
+    - 'iframe[title*="challenge"]'
+  rate_limit:
+    - 'text=Rate limit exceeded'
+    - 'text=Try again later'

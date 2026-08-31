@@ -1,0 +1,63 @@
+# Quill — three backend services (api, worker, browser) sharing one SQLite DB
+# and one action bus (A-02). All restart unless-stopped (O-01).
+#
+# Default engine is `fixture`: `docker compose up` yields a working dashboard
+# with a populated queue and shadow log, no X session / GPU / network (T-01).
+# Switch QUILL_BROWSER_ENGINE=playwright (and log in via the browser service's
+# VNC) for real operation. See README.
+services:
+  api:
+    build: { context: ., dockerfile: docker/Dockerfile }
+    command: uvicorn quill.api.app:app --host 0.0.0.0 --port 8000
+    working_dir: /app/backend
+    env_file: [.env]
+    environment:
+      - QUILL_BIND_HOST=0.0.0.0
+      - QUILL_DEFER_WRITES=1              # api enqueues; browser drains
+    ports:
+      - "127.0.0.1:8000:8000"            # loopback only (X-01) — reach via tunnel
+    volumes:
+      - quill-data:/app/backend/data
+    restart: unless-stopped
+    depends_on: [seed]
+
+  worker:
+    build: { context: ., dockerfile: docker/Dockerfile }
+    command: python -m quill.worker
+    working_dir: /app/backend
+    env_file: [.env]
+    environment:
+      - QUILL_WORKER_RUNS_ENGINE=0        # the browser service owns the engine
+    volumes:
+      - quill-data:/app/backend/data
+    restart: unless-stopped
+    depends_on: [seed]
+
+  browser:
+    build: { context: ., dockerfile: docker/Dockerfile }
+    command: /app/docker/browser-entrypoint.sh
+    working_dir: /app/backend
+    env_file: [.env]
+    environment:
+      - DISPLAY=:99
+    ports:
+      - "127.0.0.1:6080:6080"            # noVNC — loopback only (X-03)
+    volumes:
+      - quill-data:/app/backend/data
+      - quill-profile:/app/backend/data/chrome-profile   # persistent profile (E-01)
+    restart: unless-stopped
+    depends_on: [seed]
+
+  # one-shot: create schema + seed the fixture queue so the UI is populated
+  seed:
+    build: { context: ., dockerfile: docker/Dockerfile }
+    command: python -m quill.seed
+    working_dir: /app/backend
+    env_file: [.env]
+    volumes:
+      - quill-data:/app/backend/data
+    restart: "no"
+
+volumes:
+  quill-data:
+  quill-profile:

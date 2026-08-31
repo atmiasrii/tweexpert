@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-commit hook (X-04): block committing .env and the browser profile
+# (which holds a live X session cookie). Install with:
+#   ln -sf ../../scripts/pre-commit .git/hooks/pre-commit    # (or copy it)
+set -e
+
+blocked_regex='(^|/)\.env$|(^|/)chrome-profile/|\.pem$|\.key$'
+staged=$(git diff --cached --name-only)
+
+hits=$(echo "$staged" | grep -E "$blocked_regex" || true)
+if [ -n "$hits" ]; then
+  echo "BLOCKED: refusing to commit secret/profile files:"
+  echo "$hits" | sed 's/^/  - /'
+  echo "These are gitignored for a reason (X-04). Unstage them and try again."
+  exit 1
+fi
+exit 0

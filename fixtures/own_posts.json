@@ -1,0 +1,5 @@
+[
+  {"x_post_id": "1899000000000000001", "text": "shipped the inference server rewrite. p50 dropped from 90ms to 38ms.", "hours_ago": 30, "category": "build", "kind": "post", "likes": 320, "reposts": 24, "replies": 18, "views": 40000},
+  {"x_post_id": "1899000000000000002", "text": "constrained decoding fixes most structured-output pain.", "hours_ago": 74, "category": "models", "kind": "reply", "likes": 180, "reposts": 9, "replies": 7, "views": 15000},
+  {"x_post_id": "1899000000000000003", "text": "sqlite wal + fts5 is my default stack for anything single-node.", "hours_ago": 5, "category": "tooling", "kind": "post", "likes": 60, "reposts": 3, "replies": 2, "views": 4000}
+]

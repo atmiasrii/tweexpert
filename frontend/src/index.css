@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ground: #edf0f4;
+  --surface: #ffffff;
+  --ink: #16202e;
+  --muted: #5c6a7c;
+  --rule: #c7d0db;
+  --accent: #1f5c75;   /* the single accent colour */
+  --risk: #a62f1b;
+  --go: #2c6b4f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0e141b;
+    --surface: #16202e;
+    --ink: #e6ecf3;
+    --muted: #8a97a8;
+    --rule: #2a3644;
+    --accent: #4aa3c4;
+    --risk: #e06a54;
+    --go: #57b98a;
+  }
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* tweet text is the loudest thing on screen (§19) */
+.tweet { font-size: 1.02rem; line-height: 1.5; color: var(--ink); }
+.kbd { font-family: "JetBrains Mono", monospace; font-size: 11px;
+  border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--muted); }
+button { font-family: inherit; }

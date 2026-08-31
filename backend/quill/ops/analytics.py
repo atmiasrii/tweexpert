@@ -1,0 +1,112 @@
+"""Analytics (§15). Scrape own posts on a decaying schedule and store time
+series (M-01). Views compute performance (M-02), reply outcomes (M-03),
+follower trend (M-04)."""
+from __future__ import annotations
+
+import json
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+
+from sqlmodel import Session, select
+
+from ..bus.action_bus import get_bus
+from ..config import get_settings
+from ..db.models import Draft, MetricSample, Post
+from ..defaults import METRIC_SCHEDULE_S
+
+
+def sample_own_posts(session: Session) -> int:
+    """Scrape metrics for own posts whose next decay checkpoint is due."""
+    bus = get_bus()
+    own = session.exec(select(Post).where(Post.is_own == True)).all()  # noqa: E712
+    n = 0
+    for p in own:
+        if not _due(session, p):
+            continue
+        parsed = bus.submit_read("metrics", p.x_post_id)
+        if parsed:
+            session.add(MetricSample(x_post_id=p.x_post_id, likes=parsed.likes,
+                                     reposts=parsed.reposts, replies=parsed.replies,
+                                     views=parsed.views))
+            n += 1
+    session.commit()
+    return n
+
+
+def _due(session: Session, post: Post) -> bool:
+    if not post.created_at:
+        return False
+    created = post.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    age = (datetime.now(timezone.utc) - created).total_seconds()
+    samples = session.exec(
+        select(MetricSample).where(MetricSample.x_post_id == post.x_post_id)).all()
+    taken = len(samples)
+    for i, checkpoint in enumerate(METRIC_SCHEDULE_S):
+        if age >= checkpoint and taken <= i:
+            return True
+    return False
+
+
+def register_own_post(session: Session, x_post_id: str, text: str,
+                      category: str = "", kind: str = "post") -> None:
+    row = session.exec(select(Post).where(Post.x_post_id == x_post_id)).first()
+    if row:
+        row.is_own = True
+        session.add(row)
+    else:
+        session.add(Post(x_post_id=x_post_id, author_handle=get_settings().operator_handle,
+                         text=text, created_at=datetime.now(timezone.utc), is_own=True,
+                         kind=kind, metrics_json=json.dumps({"category": category})))
+    session.commit()
+
+
+# --- views --------------------------------------------------------------
+def post_performance(session: Session) -> list[dict]:
+    own = session.exec(select(Post).where(Post.is_own == True)).all()  # noqa: E712
+    out = []
+    for p in own:
+        latest = session.exec(
+            select(MetricSample).where(MetricSample.x_post_id == p.x_post_id)
+            .order_by(MetricSample.at.desc())).first()
+        meta = json.loads(p.metrics_json or "{}")
+        out.append({
+            "x_post_id": p.x_post_id, "text": p.text, "kind": p.kind,
+            "category": meta.get("category", ""),
+            "length": len(p.text),
+            "hour": p.created_at.hour if p.created_at else None,
+            "likes": latest.likes if latest else 0,
+            "views": latest.views if latest else 0,
+            "reposts": latest.reposts if latest else 0,
+        })
+    out.sort(key=lambda r: r["likes"], reverse=True)
+    return out
+
+
+def reply_outcomes(session: Session) -> list[dict]:
+    """M-03: did the reply get engagement, by draft angle."""
+    sent = session.exec(select(Draft).where(Draft.status == "sent",
+                                            Draft.kind == "reply")).all()
+    by_angle = defaultdict(lambda: {"count": 0, "likes": 0})
+    rows = []
+    for d in sent:
+        cands = json.loads(d.candidates_json or "[]")
+        angle = cands[d.chosen_index]["angle"] if cands and d.chosen_index < len(cands) else "?"
+        by_angle[angle]["count"] += 1
+        rows.append({"draft_id": d.id, "text": d.final_text, "angle": angle,
+                     "relevance": d.relevance})
+    return [{"angle": a, **v} for a, v in by_angle.items()] or rows
+
+
+def follower_series(session: Session) -> list[dict]:
+    from ..db.settings_store import get_setting
+    return get_setting(session, "follower_series", [])
+
+
+def sample_followers(session: Session, count: int) -> None:
+    from ..db.settings_store import get_setting, set_setting
+    series = get_setting(session, "follower_series", [])
+    series.append({"date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                   "count": count})
+    set_setting(session, "follower_series", series[-365:])

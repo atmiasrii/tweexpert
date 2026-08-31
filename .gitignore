@@ -1,0 +1,37 @@
+# Secrets — never commit (X-04)
+.env
+*.pem
+*.key
+
+# Browser profile holds a live X session cookie (X-04) — never commit
+backend/data/chrome-profile/
+data/chrome-profile/
+
+# Runtime data
+backend/data/
+data/
+*.db
+*.db-wal
+*.db-shm
+debug/
+backups/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Plugin scratch
+.remember/

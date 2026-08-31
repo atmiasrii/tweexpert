@@ -1,0 +1,15 @@
+#quill-sidebar {
+  position: fixed; top: 64px; right: 12px; width: 300px; max-height: 70vh;
+  overflow-y: auto; z-index: 99999; font-family: system-ui, sans-serif;
+  background: #fff; color: #16202e; border: 1px solid #c7d0db; border-radius: 8px;
+  box-shadow: none; font-size: 13px;
+}
+@media (prefers-color-scheme: dark) {
+  #quill-sidebar { background: #16202e; color: #e6ecf3; border-color: #2a3644; }
+}
+.quill-head { padding: 8px 10px; font-weight: 700; border-bottom: 1px solid #c7d0db; }
+.quill-card { padding: 8px 10px; border-bottom: 1px solid #eef1f5; }
+.quill-meta { font-size: 11px; color: #5c6a7c; font-family: monospace; }
+.quill-text { margin: 4px 0; line-height: 1.4; }
+.quill-approve { background: #1f5c75; color: #fff; border: 0; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+.quill-empty, .quill-foot { padding: 10px; color: #5c6a7c; font-size: 12px; }

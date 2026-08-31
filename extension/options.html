@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body { font-family: system-ui, sans-serif; padding: 16px; max-width: 420px; }
+input { width: 100%; padding: 8px; margin: 8px 0; }
+button { padding: 8px 12px; }
+</style></head><body>
+<h2>Quill extension</h2>
+<p>Paste the per-install shared secret from your <code>.env</code> (QUILL_EXTENSION_SHARED_SECRET). The extension talks only to <code>http://127.0.0.1:8000</code>.</p>
+<input id="secret" type="password" placeholder="shared secret" />
+<button id="save">Save</button>
+<div id="status"></div>
+<script src="options.js"></script>
+</body></html>

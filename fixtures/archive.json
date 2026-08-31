@@ -1,0 +1,17 @@
+{
+  "own_handle": "barryallendgx",
+  "posts": [
+    {"text": "constrained decoding fixes most structured-output pain. give the model a grammar, stop asking it to remember the schema.", "likes": 180},
+    {"text": "shipped the inference server rewrite. p50 dropped from 90ms to 38ms. mostly batching and killing a dumb lock.", "likes": 320},
+    {"text": "local models are good enough now that i run the whole dev loop offline. no api bill, no rate limit, no telemetry.", "likes": 410},
+    {"text": "sqlite wal + fts5 is my default stack for anything single-node. reach for postgres when you actually shard, not before.", "likes": 260},
+    {"text": "spent two days on a bug that was a missing index. the profiler would have found it in ten minutes. lesson relearned.", "likes": 140},
+    {"text": "the hard part of tooling is not the feature, it is the twenty edge cases that make it trustworthy overnight.", "likes": 175},
+    {"text": "quantization is a lever, not a free lunch. 4-bit is fine for chat, rough for code, measure before you ship it.", "likes": 205},
+    {"text": "wrote a tiny scheduler with jitter instead of cron. regular intervals are a smell in anything that talks to a rate limiter.", "likes": 150},
+    {"text": "reading the replies before you reply is underrated. half my drafts die there because someone already said it better.", "likes": 190},
+    {"text": "most agent frameworks are a for-loop and a prompt wearing a trench coat. write the loop yourself, you will understand it.", "likes": 380},
+    {"text": "backpressure is the whole game in a pipeline. if one stage cannot say no, the crash just moves downstream.", "likes": 165},
+    {"text": "idempotency keys turned a class of 3am pages into a non-event. write the intent before you do the thing.", "likes": 220}
+  ]
+}
