@@ -10,7 +10,7 @@ from ...db.engine import get_session
 from ...db.models import Account
 from ...db.settings_store import get_setting
 from ...defaults import (CAP_POSTS, CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO,
-                        CAP_THREADS)
+                        CAP_THREADS, DAILY_READ_BUDGET)
 from ...governor import governor
 from ...ops import session_guard
 from ..auth import require_auth
@@ -44,6 +44,10 @@ def get_governor(session: Session = Depends(get_session), _=Depends(require_auth
             "posts": {"used": day.posts, "cap": get_setting(session, "cap_posts", CAP_POSTS)},
             "threads": {"used": day.threads, "cap": get_setting(session, "cap_threads", CAP_THREADS)},
             "reads": day.reads,
+            # The read budget is a real ceiling: once it is spent the watcher
+            # stops pulling posts for the rest of the day, so the UI has to be
+            # able to say that out loud.
+            "read_budget": get_setting(session, "daily_read_budget", DAILY_READ_BUDGET),
         },
         "kill_switch": day.kill_switch or get_setting(session, "kill_switch", False),
         "quiet_now": governor.in_quiet_hours(session),

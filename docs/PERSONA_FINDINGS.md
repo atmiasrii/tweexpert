@@ -25,7 +25,10 @@ nothing costs an impression. A reply that earns a mute costs 150 good replies.
 | O-7 | No account tiering: every watched account treated the same | research: target 5-20x own follower count | open |
 | O-8 | Retrieval few-shot is thin, so voice leans on the static examples | corpus size on Persona tab | open |
 | O-9 | No reply-back attribution: X does not expose who replied | scoreboard counts any replier | open, upper bound only |
-| O-10 | Same reply shape repeats across a category (aphorisms all become advice) | eval report, by-situation table | open |
+| O-10 | Aphorisms turn into generic life advice instead of a reply | eval run 1, aphorism category | open, worst category |
+| O-11 | Corpus leakage: the operator's own past post reused as a fresh claim | "shipped" -> "p50 dropped from 90ms to 38ms" | guarded |
+| O-12 | Question rate lands at 36%, target 30% | eval run 1 | partly open, see below |
+| O-13 | Long replies drift over 180 chars in the selfdep and product categories | eval run 1 in-band 62.5% / 80% | open |
 
 ---
 
@@ -59,6 +62,54 @@ choosing projects that need them"*) could sit under a thousand different posts.
 `guards.generic_reply` requires the reply to share at least one non-stopword
 with the post, unless it carries its own concrete detail (a number, or an
 unusual long noun). Crude, but it catches the exact failure and is cheap.
+
+### 2026-09-02, eval run 1 (100 tweets, A/B)
+
+Full report in `PERSONA_EVAL_run1.md`. The guards did what they were built to
+do, and the report immediately turned up three failures nobody had seen.
+
+| | A baseline | B guarded |
+|---|---|---|
+| simile in the final reply | 9 | **0** |
+| generic reply | 3 | **0** |
+| punching down | 1 | **0** |
+| specific to the post | 97% | **100%** |
+| asks a question | 45% | 36% |
+| gave up entirely | 0% | 0% |
+| drafts per reply | 1.07 | 1.21 |
+
+The cost of the guards is 0.14 extra drafts per reply and half a second. They
+reject 21 drafts per 100, led by similes (10) and questions from the wrong
+archetype (4). Nothing was lost to silence, so the guards are not starving the
+pipeline.
+
+Openers were all unique across 100 replies, so the persona has not collapsed
+into a few stock moves. Vocabulary overlap between replies is 0.0067, flat
+between arms.
+
+**What run 1 exposed:**
+
+- **O-11, the worst one. Corpus leakage inventing a receipt.** Reply to the
+  single word "shipped": *"shipped and p50 dropped from 90ms to 38ms with
+  batching and killing a dumb lock."* Those numbers are from the operator's own
+  past post, retrieved as a few-shot and re-emitted as a fresh claim. A false
+  specific number under a stranger's post is exactly what earns a correction or
+  a mute. Now blocked by `guards.invented_numbers`: a number that is not in the
+  post it answers, and is not a year or a small ordinary count, is rejected.
+  Note this contradicted acceptance test T-08, whose "good" example was
+  *"constrained decoding holds schema at 7B. measured 40ms."* The voice card
+  already forbids exactly that ("no fake 'I measured 40ms p50'"), so the test
+  example was violating the spec it tested; it was replaced.
+- **Thin posts should be silence, not a reply.** "gm", "soon.", "shipped",
+  "big if true" all got replies. The research's hard gate is: no specific value
+  to add, skip. `guards.too_thin` now skips them, deliberately narrow so a
+  short but real post still gets answered.
+- **"not just X, it's Y" was slipping through** in the form "isn't just X,
+  it's Y", which the old regex missed.
+- **O-10, aphorisms are the weakest category.** Naval, paulg and wisdom_acct
+  all drew generic advice back ("leverage isn't just about connections, it's
+  about resources and knowledge"). Technically specific enough to pass the
+  guards, but it lectures instead of replying. No fix yet.
 
 ### 2026-09-02, observations from the live queue
 

@@ -2,6 +2,7 @@
 // Quill is on right now, with a ticker of what just happened — who was read,
 // what got drafted, where a reply went. Polls the activity feed so it reflects
 // the browser/worker processes, not just this tab.
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Card, SectionTitle, cx } from "./ui";
@@ -30,6 +31,29 @@ export function PipelineFlow() {
     : activeId === "sent" ? stages.length - 1 : -1;
 
   const busy = ["watching", "scoring", "drafting", "reviewing", "sending"].includes(activeId);
+
+  // Reading is most of what Quill does, so an unfiltered feed is ~90% "reading
+  // @someone" and the events that matter (queued, sent, skipped) scroll away.
+  // Consecutive reads collapse into one row with a count.
+  const rows = useMemo(() => {
+    const out: any[] = [];
+    for (const r of recent) {
+      const prev = out[out.length - 1];
+      // Reads collapse across accounts; skips only collapse for the same
+      // account, because "skipped 6 accounts" would hide which ones.
+      const sameRun = prev && (
+        (r.stage === "watching" && prev.stage === "watching") ||
+        (r.stage === "discarded" && prev.stage === "discarded" && r.target === prev.target)
+      );
+      if (sameRun) {
+        prev._runCount = (prev._runCount ?? 1) + 1;
+        prev._handles = [...(prev._handles ?? [prev.target]), r.target].filter(Boolean);
+        continue;
+      }
+      out.push({ ...r });
+    }
+    return out;
+  }, [recent]);
 
   return (
     <Card className="space-y-3">
@@ -66,12 +90,20 @@ export function PipelineFlow() {
       </div>
 
       <div className="rounded-sm border border-rule divide-y divide-[color:var(--rule)] max-h-44 overflow-y-auto">
-        {recent.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="px-3 py-3 text-[12.5px] text-muted">Nothing yet. Start Quill to see it work.</div>
-        ) : recent.map((r) => (
-          <div key={r.id} className="px-3 py-1.5 flex items-center gap-2 text-[12.5px]">
+        ) : rows.map((r) => (
+          <div key={r.id} className="px-3 py-1.5 flex items-center gap-2 text-[12.5px]"
+            title={r._handles?.length ? r._handles.map((h: string) => `@${h}`).join(", ") : undefined}>
             <StageDot stage={r.stage} />
-            <span className="text-ink-2">{label(r)}</span>
+            <span className={cx(r.stage === "watching" || r.stage === "discarded"
+              ? "text-muted" : "text-ink-2")}>
+              {r._runCount > 1
+                ? (r.stage === "watching"
+                    ? `read ${r._runCount} accounts`
+                    : `${label(r)} (${r._runCount} posts)`)
+                : label(r)}
+            </span>
             <span className="ml-auto num text-[11px] text-faint">{time(r.at)}</span>
           </div>
         ))}

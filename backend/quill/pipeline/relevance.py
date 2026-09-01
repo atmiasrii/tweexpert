@@ -86,6 +86,10 @@ def score(session: Session, post: ParsedPost, account: Account | None) -> float:
 def skip_reason(post: ParsedPost) -> str:
     """Hard gates from the research. Cheap, and they run before any drafting so
     a dead post never costs a model call."""
+    from ..persona.guards import too_thin
+    thin = too_thin(post.text)
+    if thin:
+        return thin
     if _age_minutes(post) > SKIP_AFTER_MIN:
         return f"post is {int(_age_minutes(post))} min old, the window has closed"
     if post.replies > SKIP_REPLIES:

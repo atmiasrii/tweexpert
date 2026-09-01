@@ -64,10 +64,21 @@ export function Home({ go }: { go: (t: TabId) => void }) {
           sub={autoCount != null ? `${autoCount} reply on their own` : undefined}
           onClick={() => go("Watchlist")}
         />
+        {/* The read budget is the quietest way Quill can stop working: once it
+            is spent the watcher just stops pulling posts, with nothing on
+            screen to say why. So the card says it. */}
         <StatCard
-          label="Posts read today" value={u?.reads ?? "—"}
-          sub={g?.quiet_now ? "quiet hours — nothing sends" : "Quill is reading your feed"}
-          tone={g?.quiet_now ? "warn" : "neutral"}
+          label="Posts read today"
+          value={u?.reads ?? "—"}
+          sub={
+            u?.read_budget && u.reads >= u.read_budget
+              ? `daily reading limit reached (${u.read_budget})`
+              : u?.read_budget
+                ? `${u.read_budget - u.reads} left of ${u.read_budget} today`
+                : g?.quiet_now ? "quiet hours, nothing sends" : "Quill is reading your feed"
+          }
+          tone={u?.read_budget && u.reads >= u.read_budget ? "risk"
+            : u?.read_budget && u.reads > u.read_budget * 0.85 ? "warn" : "neutral"}
         />
       </div>
 

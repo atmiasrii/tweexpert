@@ -1,0 +1,3774 @@
+{
+ "a": [
+  {
+   "handle": "karpathy",
+   "kind": "technical",
+   "post": "the bitter lesson keeps being relearned. every hand-tuned pipeline gets eaten by a bigger model and more compute, usually within 18 months",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "bigger models and compute work until they hit a data gap. we saw a pipeline falter when new user contexts flooded in, not just more tweets or clicks.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "bigger models and compute work until they hit a data gap. we saw a pipeline falter when new user contexts flooded in, not just more tweets or clicks.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "swyx",
+   "kind": "technical",
+   "post": "hot take: 90% of AI agent startups are just a for-loop and a prompt with a $10M valuation",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "many hit prod without a loop: they bake prompts into SDKs or plugins. makes it harder to see the loop but users still get agent-like behavior from pre-written",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "many hit prod without a loop: they bake prompts into SDKs or plugins. makes it harder to see the loop but users still get agent-like behavior from pre-written",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 3.1
+  },
+  {
+   "handle": "simonw",
+   "kind": "technical",
+   "post": "ran the new model locally on a 64GB mac. 12 tokens/sec, which is slow but completely usable for batch work overnight",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "12 tokens/sec sounds grindy for overnight. We hit 30+ locally with some tweaks. Might be hitting a bottleneck? Worth profiling.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "12 tokens/sec sounds grindy for overnight. We hit 30+ locally with some tweaks. Might be hitting a bottleneck? Worth profiling.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "jeremyphoward",
+   "kind": "technical",
+   "post": "fine-tuning is dead for most use cases. long context plus good retrieval beats it on cost and iteration speed",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "fine-tuning is like buying a custom car when a good used one with better parts fits your needs. cost and speed wins, but keeps the shop open for those rare drives.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "fine-tuning is like buying a custom car when a good used one with better parts fits your needs. cost and speed wins, but keeps the shop open for those rare drives.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ml_researcher",
+   "kind": "technical",
+   "post": "our agent hit 94% on the benchmark. no finetuning, no RL, just better verification at inference time",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "no finetuning, just better questions. the model was probably rolling its digital eyes at ours.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "no finetuning, just better questions. the model was probably rolling its digital eyes at ours.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "infra_eng",
+   "kind": "technical",
+   "post": "we cut inference cost 60% by batching aggressively and accepting 200ms more latency. nobody complained",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "we saw 50% cost cut too but latency bumped to 500ms before users noticed. might be hitting a sweet spot you?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "we saw 50% cost cut too but latency bumped to 500ms before users noticed. might be hitting a sweet spot you?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "vector_db_guy",
+   "kind": "technical",
+   "post": "everyone reaches for a vector database when postgres with pgvector would have carried them to a million rows",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "pgvector is underrated for sure. how did you handle similarity queries at scale?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "pgvector is underrated for sure. how did you handle similarity queries at scale?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "rustacean",
+   "kind": "technical",
+   "post": "rewrote the hot path in rust. 40x faster. the other 95% of the codebase is staying in python and that is fine",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "40x speedup is huge. how did you handle the rust-python FFI for the rest of the system?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "40x speedup is huge. how did you handle the rust-python FFI for the rest of the system?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "evals_person",
+   "kind": "technical",
+   "post": "if you do not have an eval set you do not have a product, you have a demo that happened to work twice",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "eval sets are crucial but so is continuous monitoring in prod. we catch edge cases that never made it to eval. real-world usage uncovers bugs eval can't predict.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "eval sets are crucial but so is continuous monitoring in prod. we catch edge cases that never made it to eval. real-world usage uncovers bugs eval can't predict.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "promptdev",
+   "kind": "technical",
+   "post": "chain of thought stopped helping once the models got good enough. now it mostly adds latency and tokens",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "chain still cuts confusion at scale. good models need prompts to stay on track. latency is a price worth paying for clarity.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "chain still cuts confusion at scale. good models need prompts to stay on track. latency is a price worth paying for clarity.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "aistartup",
+   "kind": "hype",
+   "post": "excited to announce our $12M Series A to build the future of autonomous agents for the enterprise",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "big round for agents! what enterprise pain points are you tackling first?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "big round for agents! what enterprise pain points are you tackling first?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "founderguy",
+   "kind": "hype",
+   "post": "we are hiring! join us to work on the hardest problems in AI infrastructure. remote, competitive equity",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "joining a startup for AI infra means also fixing prod issues at 2am. anyone else have stories?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "joining a startup for AI infra means also fixing prod issues at 2am. anyone else have stories?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "bigcorp_ai",
+   "kind": "hype",
+   "post": "introducing our new AI assistant. it understands your business context and takes action across all your tools",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Sounds like it's ready for your competitor's business context too. how does it know the difference?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Sounds like it's ready for your competitor's business context too. how does it know the difference?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "launch_bro",
+   "kind": "hype",
+   "post": "we are live on product hunt today. six months of work. would mean the world if you checked it out",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "six months is a sprint for something to feel ready on product hunt. what did you learn from the early feedback?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "six months is a sprint for something to feel ready on product hunt. what did you learn from the early feedback?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "hype_vc",
+   "kind": "hype",
+   "post": "AI is the biggest platform shift since mobile and most people still have not internalized what that means",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Before AI, most people internalized web apps shifting to mobile apps. Not everyone got there in time. The same will happen with AI, but it's harder to see until you're in it.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Before AI, most people internalized web apps shifting to mobile apps. Not everyone got there in time. The same will happen with AI, but it's harder to see until you're in it.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "growth_person",
+   "kind": "hype",
+   "post": "our AI SDR books more meetings than three human reps combined and never takes a day off",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "what about those edge cases where tiny tweaks mean the difference? humans pick up on subtle cues machines miss. curious how you handle those outliers.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "what about those edge cases where tiny tweaks mean the difference? humans pick up on subtle cues machines miss. curious how you handle those outliers.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "model_lab",
+   "kind": "hype",
+   "post": "our new model is state of the art on every benchmark we tested. weights coming soon",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "state-of-the-art on your benchmarks doesn't mean much if you didn't test on edge cases. how did it fare with tiny datasets or adversarial prompts?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "state-of-the-art on your benchmarks doesn't mean much if you didn't test on edge cases. how did it fare with tiny datasets or adversarial prompts?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "devtool_ceo",
+   "kind": "hype",
+   "post": "developers spend 60% of their time reading code, not writing it. we are fixing the reading half",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "reading code is finding signal in noise. how do you filter out the noise?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "reading code is finding signal in noise. how do you filter out the noise?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "contrarian_dev",
+   "kind": "hottake",
+   "post": "unpopular opinion: microservices ruined more startups than they saved. you needed a monolith and a second engineer",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "overengineered architecture can drown small teams. what specific pain did microservices add that a monolith solved?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "overengineered architecture can drown small teams. what specific pain did microservices add that a monolith solved?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "startup_bro",
+   "kind": "hottake",
+   "post": "unpopular opinion: you don't need product-market fit, you need distribution. build an audience first, product second",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Building an audience without a product is like throwing a party with nothing to talk about. Distribution helps, but something to discuss is key.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Building an audience without a product is like throwing a party with nothing to talk about. Distribution helps, but something to discuss is key.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "pm_thoughts",
+   "kind": "hottake",
+   "post": "most A/B tests are theater. the effect sizes teams celebrate are inside the noise band of their own traffic",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "noise in numbers means noise in results. how do teams separate signal from noise in their A/B tests?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "noise in numbers means noise in results. how do teams separate signal from noise in their A/B tests?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "design_crit",
+   "kind": "hottake",
+   "post": "dark mode is a preference, not an accessibility feature, and treating it as one lets teams skip real contrast work",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "dark mode can help accessibility by reducing eye strain in low light, but it's not a full solution. real contrast work remains crucial for visibility.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "dark mode can help accessibility by reducing eye strain in low light, but it's not a full solution. real contrast work remains crucial for visibility.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "eng_manager",
+   "kind": "hottake",
+   "post": "standups are fine. what is broken is that nobody writes anything down, so the same context gets rebuilt every morning",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "writing down context helps but often the notes are too generic. try linking to live updates or recent PRs for concrete action items.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "writing down context helps but often the notes are too generic. try linking to live updates or recent PRs for concrete action items.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "data_person",
+   "kind": "hottake",
+   "post": "your data team is not a bottleneck. your questions are bad and nobody wants to say it out loud",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Bad questions are the real bottleneck. Data teams just want a clear map to follow.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Bad questions are the real bottleneck. Data teams just want a clear map to follow.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "sec_researcher",
+   "kind": "hottake",
+   "post": "prompt injection is not a bug you patch, it is the architecture. we shipped a system that executes text from strangers",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "prompt injection means architecting for least privilege. we run all user inputs through a jailbroken model first to check for malicious intent.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "prompt injection means architecting for least privilege. we run all user inputs through a jailbroken model first to check for malicious intent.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "oss_maintainer",
+   "kind": "hottake",
+   "post": "open source sustainability is not a funding problem, it is a maintainer attention problem. money does not create reviewers",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "money can buy services and tools that attract and retain maintainers. github sponsors tripled my free time for review.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "money can buy services and tools that attract and retain maintainers. github sponsors tripled my free time for review.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "remote_work",
+   "kind": "hottake",
+   "post": "return to office is not about productivity. it is about managers who never learned to measure output",
+   "archetype_first": "pushback",
+   "archetype_used": "question",
+   "text": "managers often equate presence with performance. how do you measure output without presence?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "managers might not measure output well, but office return ensures informal learning and context-sharing that's hard to quantify. remote can't replace that organic stuff. what metric captures that?",
+     "ok": false,
+     "why": "'not X, but Y' construction"
+    },
+    {
+     "archetype": "question",
+     "text": "managers often equate presence with performance. how do you measure output without presence?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "crypto_refugee",
+   "kind": "hottake",
+   "post": "AI is repeating the crypto mistake: building infrastructure for demand that has not shown up yet",
+   "archetype_first": "question",
+   "archetype_used": "receipt",
+   "text": "AI infrastructure is also driven by real use cases today, like large-scale training and inference needs. The crypto analogy oversimplifies the current reality.",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "building for unproven demand risks\u8fc7\u5269\u7684\u5185\u5bb9\uff0c\u8bf7\u7ed9\u51fa\u4e00\u4e2a\u7b80\u6d01\u7684\u56de\u590d\uff0c\u7b26\u5408\u4e0a\u8ff0\u8981\u6c42\u3002",
+     "ok": false,
+     "why": "not English"
+    },
+    {
+     "archetype": "receipt",
+     "text": "AI infrastructure is also driven by real use cases today, like large-scale training and inference needs. The crypto analogy oversimplifies the current reality.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "naval",
+   "kind": "aphorism",
+   "post": "you're not underpaid. you're under-leveraged.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "leveraging skills means also knowing when to say no to scope creep. i've spent months on projects that should've been days because of it.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "leveraging skills means also knowing when to say no to scope creep. i've spent months on projects that should've been days because of it.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "paulg",
+   "kind": "aphorism",
+   "post": "The most successful founders I know are not the smartest. They're the most relentlessly resourceful.",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Resourcefulness is overrated. I mean, who needs smarts when you can duct-tape solutions? Seriously, though, resilience beats intellect any day.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Resourcefulness is overrated. I mean, who needs smarts when you can duct-tape solutions? Seriously, though, resilience beats intellect any day.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "sama",
+   "kind": "aphorism",
+   "post": "AGI is going to be a bigger deal than people think, and also a smaller deal than people think, at the same time.",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "AGI will surprise us both ways. How do you see it disrupting specific industries first?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "AGI will feel like a sudden shift but in hindsight it'll be gradual. Like how we look at smartphones now, revolutionary and mundane at once.",
+     "ok": false,
+     "why": "tell-list phrase: 'revolutionary'"
+    },
+    {
+     "archetype": "question",
+     "text": "AGI will surprise us both ways. How do you see it disrupting specific industries first?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "wisdom_acct",
+   "kind": "aphorism",
+   "post": "the work you avoid is usually the work that matters. the rest is just motion you can point at",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "avoiding work can save time but it also delays problems until they explode. manageable tasks pile up into crises that matter a lot more later on",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "avoiding work can save time but it also delays problems until they explode. manageable tasks pile up into crises that matter a lot more later on",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "shreyas",
+   "kind": "aphorism",
+   "post": "strategy is choosing what not to do. most roadmaps are a list of things nobody was brave enough to cut",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "cutting what doesn't work isn't brave, it's essential. every roadmap I've seen survive had at least one hard no.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "cutting what doesn't work isn't brave, it's essential. every roadmap I've seen survive had at least one hard no.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "founder_zen",
+   "kind": "aphorism",
+   "post": "speed is a feature until it is a habit. then it is technical debt with good PR",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "fast dev cycles feel like superpowers until they create a maintenance nightmare. how do you keep the balance without sacrificing speed?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "fast dev cycles feel like superpowers until they create a maintenance nightmare. how do you keep the balance without sacrificing speed?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "naval2",
+   "kind": "aphorism",
+   "post": "specific knowledge is knowledge you cannot be trained for. if society can train you, it can replace you",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "craftsmanship skills often fall here. a well-seasoned carpenter's intuition can't be just trained, it's honed over years handling tools and wood. how does that get replaced?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "craftsmanship skills often fall here. a well-seasoned carpenter's intuition can't be just trained, it's honed over years handling tools and wood. how does that get replaced?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "quiet_builder",
+   "kind": "aphorism",
+   "post": "consistency beats intensity, but only if you are consistent about the right thing",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "right metrics avoid wasted effort. what does your team measure first thing in the morning?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "right metrics avoid wasted effort. what does your team measure first thing in the morning?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "dan_abramov",
+   "kind": "selfdep",
+   "post": "spent all day debugging. turns out it was a missing await. i have 12 years of experience",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "missing await is a rookie mistake I've made at every level. ever caught one in a code review?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "missing await is a rookie mistake I've made at every level. ever caught one in a code review?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "tired_dev",
+   "kind": "selfdep",
+   "post": "shipped a migration that dropped a column on friday at 5pm. i know. i know.",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Friday at 5pm is the only time to drop a column no one knew was useless until it was gone.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Friday at 5pm is the only time to drop a column no one knew was useless until it was gone.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "honest_founder",
+   "kind": "selfdep",
+   "post": "we spent four months building a feature two customers asked for and zero customers used. my call, my mistake",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "our team had a similar stint. we now validate mini-features with pilot customers first. cuts the build time and catches non-interest early.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "our team had a similar stint. we now validate mini-features with pilot customers first. cuts the build time and catches non-interest early.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "junior_dev",
+   "kind": "selfdep",
+   "post": "spent three hours on a bug. it was a typo in an env var name. i am not okay",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "been there with a misspelled key in JSON config. added a quick script to lint env files and saved days down the line",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "been there with a misspelled key in JSON config. added a quick script to lint env files and saved days down the line",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "burnt_out",
+   "kind": "selfdep",
+   "post": "forgot to renew the domain. site was down for six hours. somehow nobody noticed, which hurts more",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "six hours and no one noticed? what was the critical path traffic like during that window?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "six hours and no one noticed? what was the critical path traffic like during that window?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "solo_dev",
+   "kind": "selfdep",
+   "post": "my test suite has been passing for a month because i accidentally disabled it. found out today",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "missed errors can hide bugs for months. i once shipped a prod fix without tests and caught it weeks later in a review. always good to re-enable and rerun.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "missed errors can hide bugs for months. i once shipped a prod fix without tests and caught it weeks later in a review. always good to re-enable and rerun.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ml_intern",
+   "kind": "selfdep",
+   "post": "trained for two days on a shuffled label set. the loss looked beautiful. i have no idea how to explain this in standup",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Loss isn't always a story in standup. Show how it affects metrics like accuracy or user engagement. That links loss to business impact everyone understands.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Loss isn't always a story in standup. Show how it affects metrics like accuracy or user engagement. That links loss to business impact everyone understands.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "startup_cto",
+   "kind": "selfdep",
+   "post": "we picked the wrong database in 2023 and i have been paying interest on that decision every sprint since",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "might be premature optimization. switching costs can dwarf early gains if needs shift. how rigid were your growth requirements?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "might be premature optimization. switching costs can dwarf early gains if needs shift. how rigid were your growth requirements?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "curious_dev",
+   "kind": "question",
+   "post": "what is the actual argument for running models locally when the API is cheaper and faster for almost everything?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "local models cut costs and ensure privacy for sensitive data. also, no API downtime means your app keeps working offline.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "local models cut costs and ensure privacy for sensitive data. also, no API downtime means your app keeps working offline.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "new_founder",
+   "kind": "question",
+   "post": "how do you decide when to stop iterating on a prototype and commit to building the real thing?",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "we pause when it solves a real problem today, not tomorrow. what's the hardest feedback you've got to make it stick?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "we pause when it solves a real problem today, not tomorrow. what's the hardest feedback you've got to make it stick?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "hiring_lead",
+   "kind": "question",
+   "post": "what is the best signal you have found in an engineering interview that is not a live coding round?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "I've found whiteboarding architecture under a tight deadline revealing. Ask them to design a feature within 15 mins, constraints and all. Shows thinking under pressure.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "I've found whiteboarding architecture under a tight deadline revealing. Ask them to design a feature within 15 mins, constraints and all. Shows thinking under pressure.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "indie_hacker",
+   "kind": "question",
+   "post": "for those doing $10k+ MRR solo: what broke first as you grew, support or infrastructure?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "For me, it was the mental model of what was happening under the hood. Lost sleep on unexpected scaling issues until I built a mental sandbox of my stack's limits.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "For me, it was the mental model of what was happening under the hood. Lost sleep on unexpected scaling issues until I built a mental sandbox of my stack's limits.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ai_pm",
+   "kind": "question",
+   "post": "how are teams actually measuring whether their LLM feature is getting better? everything I try feels like vibes",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Metrics like NPS can help but often miss the mark. Focus on task success rates for specific use cases. It's more actionable for iteration.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Metrics like NPS can help but often miss the mark. Focus on task success rates for specific use cases. It's more actionable for iteration.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "student_dev",
+   "kind": "question",
+   "post": "is it still worth learning the fundamentals deeply when the model writes most of the boilerplate anyway?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "models write boilerplate but debugging still needs you. i've spent hours untangling auto-generated code that looked perfect at first glance. fundamentals save your sanity.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "models write boilerplate but debugging still needs you. i've spent hours untangling auto-generated code that looked perfect at first glance. fundamentals save your sanity.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ops_person",
+   "kind": "question",
+   "post": "what does your on-call rotation look like at under 15 engineers? we are burning people out",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "rotate in shifts instead of weeks. half the team on call for 4 hours each night reduces the burnout. works wonders under 20 people.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "rotate in shifts instead of weeks. half the team on call for 4 hours each night reduces the burnout. works wonders under 20 people.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "designer_q",
+   "kind": "question",
+   "post": "does anyone have a good pattern for showing model uncertainty in a UI without scaring the user?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "use error bars or confidence levels in charts. shows range without panic. we use shades of gray to indicate uncertainty strength, works surprisingly well.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "use error bars or confidence levels in charts. shows range without panic. we use shades of gray to indicate uncertainty strength, works surprisingly well.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "levelsio",
+   "kind": "flex",
+   "post": "just crossed $200k MRR on a product i built alone in 6 weeks. stop overthinking and ship",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "building in 6 weeks sounds lightning fast but it glosses over pre-work and validation. shipping without validation can lead to rewriting core assumptions. celebrate but consider talking to a few users first.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "building in 6 weeks sounds lightning fast but it glosses over pre-work and validation. shipping without validation can lead to rewriting core assumptions. celebrate but consider talking to a few users first.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "bootstrapper",
+   "kind": "flex",
+   "post": "18 months, no funding, 340 paying customers, profitable since month 7. slow is fine",
+   "archetype_first": "pushback",
+   "archetype_used": "question",
+   "text": "Profitable early means you can stay lean and focus on what works. How do you handle growth versus keeping things streamlined?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Slow growth can starve\u73b0\u91d1\u6d41\u4e0d\u8db3\u5bfc\u81f4\u7f13\u6162\u589e\u957f\u53ef\u80fd\u4f1a\u5728\u4e0d\u88ab\u6ce8\u610f\u7684\u60c5\u51b5\u4e0b\u635f\u5bb3\u4e1a\u52a1\u3002\u4f60\u5982\u4f55\u786e\u4fdd\u957f\u671f\u7a33\u5b9a\u6027\u540c\u65f6\u4fdd\u6301\u589e\u957f\uff1f",
+     "ok": false,
+     "why": "not English"
+    },
+    {
+     "archetype": "question",
+     "text": "Profitable early means you can stay lean and focus on what works. How do you handle growth versus keeping things streamlined?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.1
+  },
+  {
+   "handle": "ex_faang",
+   "kind": "flex",
+   "post": "quit my job at a big tech company to build alone. six months in and i have never been more tired or more sure",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "building solo lets you move fast but hits hard on sleep. how do you keep the energy up for another six months?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "building solo lets you move fast but hits hard on sleep. how do you keep the energy up for another six months?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "app_dev",
+   "kind": "flex",
+   "post": "our app hit 1M downloads today. the whole thing is still a single postgres instance and a rails monolith",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "still running on a single postgres? how do you handle read/write contention?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "still running on a single postgres? how do you handle read/write contention?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "agency_owner",
+   "kind": "flex",
+   "post": "went from freelancing at $60/hr to a productized service at $8k/mo per client. same work, different packaging",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "switched from hourly to retainers and saw engagement spike. clients like budget certainty, you like knowing who's in the pipeline.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "switched from hourly to retainers and saw engagement spike. clients like budget certainty, you like knowing who's in the pipeline.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "youtuber_dev",
+   "kind": "flex",
+   "post": "100k subscribers. four years. 380 videos. the first 300 got almost nothing and that was the point",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "First 300 got nothing? Sounds like a successful stress test for subscriber patience.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "First 300 got nothing? Sounds like a successful stress test for subscriber patience.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "frustrated_dev",
+   "kind": "complaint",
+   "post": "every AI coding tool is great for the first 200 lines and then confidently rewrites something that was already correct",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "sounds like they hit their 200-line quota and forgot to bring an umbrella for the rewrite rain.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "sounds like they hit their 200-line quota and forgot to bring an umbrella for the rewrite rain.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ops_rage",
+   "kind": "complaint",
+   "post": "third cloud provider outage this quarter and the status page was green the entire time",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "status pages often show what they want you to see, not what's really happening. internal logs tell a different story.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "status pages often show what they want you to see, not what's really happening. internal logs tell a different story.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "pm_pain",
+   "kind": "complaint",
+   "post": "spent the whole week in meetings about a decision that three people could have made in twenty minutes",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "Meeting inefficiency is a tax on clarity. how many such meetings did you end up in this week?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "Meeting inefficiency is a tax on clarity. how many such meetings did you end up in this week?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "api_hater",
+   "kind": "complaint",
+   "post": "the docs say the endpoint returns an array. it returns an object. the example returns null. all three are current",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "saw this with API versioning changes. always check the release notes too, not just docs, devs update one without syncing the other",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "saw this with API versioning changes. always check the release notes too, not just docs, devs update one without syncing the other",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "onboard_pain",
+   "kind": "complaint",
+   "post": "signed up for a tool today and hit four modals, a survey and a calendar link before I saw the product",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Saw more close-ups of opt-in buttons than features. Product tours should be in stealth mode too.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Saw more close-ups of opt-in buttons than features. Product tours should be in stealth mode too.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "recruiter_rage",
+   "kind": "complaint",
+   "post": "seven rounds for a mid-level role, then a take-home, then ghosted. the market is not tight, hiring is just broken",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "ghosting happens even in tight markets. once had a team of 5 ghost me after a final round, all while I was their interview loop's next slot. broken systems, not market signals.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "ghosting happens even in tight markets. once had a team of 5 ghost me after a final round, all while I was their interview loop's next slot. broken systems, not market signals.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ml_ops",
+   "kind": "complaint",
+   "post": "our model retrains nightly and nobody can tell me what changed between last week's version and today's",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Version control for model weights and a changelog can help track changes. We use git LFS for model files and document key shifts in training data or architecture.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Version control for model weights and a changelog can help track changes. We use git LFS for model files and document key shifts in training data or architecture.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "growth_data",
+   "kind": "receipt",
+   "post": "we tested 40 landing page variants over 6 months. the winner was the one with fewer words and no illustration",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "fewer words can make it scan faster, but no illustration misses context cues. did you test a version with concise text and visuals?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "fewer words can make it scan faster, but no illustration misses context cues. did you test a version with concise text and visuals?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "churn_analyst",
+   "kind": "receipt",
+   "post": "our churn was not a pricing problem. 70% of cancellations had not used the core feature once in 30 days",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "If they didn't use it, was it priced too high or just out of mind?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "If they didn't use it, was it priced too high or just out of mind?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "perf_eng",
+   "kind": "receipt",
+   "post": "shaved 800ms off first paint and conversion moved 4%. the 800ms was almost entirely fonts and a analytics script",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "fonts optimized can mean more than just faster load. fewer unique font variants can reduce overall payload and improve perceived speed too. did you try that?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "fonts optimized can mean more than just faster load. fewer unique font variants can reduce overall payload and improve perceived speed too. did you try that?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "support_lead",
+   "kind": "receipt",
+   "post": "half our support tickets were one confusing empty state. we rewrote 40 words and volume dropped by a third",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "clear messaging can fix more than just tickets. did you see similar drops elsewhere after the change?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "clear messaging can fix more than just tickets. did you see similar drops elsewhere after the change?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "sales_eng",
+   "kind": "receipt",
+   "post": "deals we lost on price came back at the same price nine months later. deals we lost on trust never came back",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "lost deals on trust can sometimes return if you keep the door open and show progress. we had a client come back after a year when we proved our tech matured.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "lost deals on trust can sometimes return if you keep the door open and show progress. we had a client come back after a year when we proved our tech matured.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ab_tester",
+   "kind": "receipt",
+   "post": "removed the onboarding tour entirely. activation went up 9%. people wanted to click things, not read about clicking",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "we saw a similar lift by replacing form labels with tooltips on hover. less page clutter means users feel like explorers, not tourists.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "we saw a similar lift by replacing form labels with tooltips on hover. less page clutter means users feel like explorers, not tourists.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "algo_watcher",
+   "kind": "meta",
+   "post": "the reply section is the whole platform now. the timeline is just where you find something to reply to",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "the inbox is where real conversations start. replies amplify but inboxes build communities",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "the inbox is where real conversations start. replies amplify but inboxes build communities",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "creator_econ",
+   "kind": "meta",
+   "post": "engagement bait works until your audience learns your name means bait. then nothing works",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "bait works till they know it's bait. then what shifts in your strategy?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "bait works till they know it's bait. then what shifts in your strategy?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "twitter_meta",
+   "kind": "meta",
+   "post": "everyone posting AI-generated replies thinks nobody can tell. everyone can tell. the tell is that it agrees with you",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "agree, AI tends to parrot back what it heard. how do you spot the genuine replies?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "agreed. a sign it's AI is not just agreeing but also suggesting next steps with phrases like \"consider this\" without context. humans skip that.",
+     "ok": false,
+     "why": "banned opener: 'agreed.'"
+    },
+    {
+     "archetype": "question",
+     "text": "agree, AI tends to parrot back what it heard. how do you spot the genuine replies?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "bot_hunter",
+   "kind": "meta",
+   "post": "you can spot the AI replies by the em dashes and the fact that they restate your post before adding nothing",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "True, but AI also tends to overuse commas and underestimate the value of a good edit before hitting send. Adjusting for that can make all the difference.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "True, but AI also tends to overuse commas and underestimate the value of a good edit before hitting send. Adjusting for that can make all the difference.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "growth_hacker",
+   "kind": "meta",
+   "post": "reply guys who add real information grow. reply guys who add enthusiasm get muted. the algorithm learned this before we did",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Muted for enthusiasm? More like missed signals and bots. The alg favors engagement over quiet truth-tellers. Worth checking if your info is flagged as spammy first.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Muted for enthusiasm? More like missed signals and bots. The alg favors engagement over quiet truth-tellers. Worth checking if your info is flagged as spammy first.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "quiet_poster",
+   "kind": "meta",
+   "post": "posting less and replying more was the single biggest change to my reach. took me three years to try it",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "tried the same but found that consistent posting schedules work better for niche audiences. seems timing matters more than quantity for some followers. curious what your schedule was?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "tried the same but found that consistent posting schedules work better for niche audiences. seems timing matters more than quantity for some followers. curious what your schedule was?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "vc_thoughtboi",
+   "kind": "money",
+   "post": "founders: your seed round is not an achievement. it's a debt you took on to prove something. act accordingly",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "agreed, but getting that seed can mean you avoided a year of bootstrap hustle. the real proof is shipping with it wisely.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "agreed, but getting that seed can mean you avoided a year of bootstrap hustle. the real proof is shipping with it wisely.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "saas_metrics",
+   "kind": "money",
+   "post": "if your CAC payback is over 18 months you do not have a growth problem, you have a pricing problem",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "CAC payback over 18 months might mean you're underselling. People buy when they see value beyond cost, not just on price alone. Worth checking if perceived value matches your ask.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "CAC payback over 18 months might mean you're underselling. People buy when they see value beyond cost, not just on price alone. Worth checking if perceived value matches your ask.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "angel_investor",
+   "kind": "money",
+   "post": "the best companies I have backed all looked like bad ideas that one person understood unusually well",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "I've funded ideas others dismissed but founders overfitting to a niche can struggle too. A bad idea well-executed is just a waste of time.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "I've funded ideas others dismissed but founders overfitting to a niche can struggle too. A bad idea well-executed is just a waste of time.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "pricing_guy",
+   "kind": "money",
+   "post": "raise your prices. the customers who leave were the ones filing the most tickets anyway",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "raises prices cut our support load in half. curious how other teams measure the cost of their most active ticket filers?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "raises prices cut our support load in half. curious how other teams measure the cost of their most active ticket filers?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "cfo_type",
+   "kind": "money",
+   "post": "burn multiple is the only startup metric that has never lied to me",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "burn multiple might be honest, but it's like asking a liar how many times they lied, useful, but not the full story.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "burn multiple might be honest, but it's like asking a liar how many times they lied, useful, but not the full story.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "solopreneur",
+   "kind": "money",
+   "post": "revenue is the only validation that survives contact with your own doubt at 3am",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "revenue isn't validation if it comes from cutting corners. 3am doubts are about quality and integrity, not just sales.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "revenue isn't validation if it comes from cutting corners. 3am doubts are about quality and integrity, not just sales.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "career_coach",
+   "kind": "career",
+   "post": "the fastest way to get promoted is to make your manager's hardest problem disappear without being asked",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "disappearing problems proactively is like magic to managers. how do you spot these issues before being asked?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "disappearing problems proactively is like magic to managers. how do you spot these issues before being asked?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "eng_lead",
+   "kind": "career",
+   "post": "juniors who ask good questions in public channels grow twice as fast as the ones who DM me",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "public questions are the ones with an audience. dm's are just for me to cringe at your jokes.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "public questions are the ones with an audience. dm's are just for me to cringe at your jokes.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "job_seeker",
+   "kind": "career",
+   "post": "applied to 140 roles, 6 replies, 2 onsites, 1 offer. posting the numbers because everyone hides them",
+   "archetype_first": "dry wit",
+   "archetype_used": "question",
+   "text": "6 replies from 140 apps is a solid signal-to-noise ratio. how did the offer come so early in the process?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "numbers are less impressive when everyone's hiding them. kudos for being the outlier.\u0442\u0435\u043b\u044f\u0434\u044c",
+     "ok": false,
+     "why": "tell-list phrase: 'kudos'"
+    },
+    {
+     "archetype": "question",
+     "text": "6 replies from 140 apps is a solid signal-to-noise ratio. how did the offer come so early in the process?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.9
+  },
+  {
+   "handle": "switcher",
+   "kind": "career",
+   "post": "left engineering for product and the hardest part was learning that being right slowly is worse than being useful now",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "being useful now often means fixing broken stuff fast. at my last job, we cut dev-to-prod time from days to minutes to ship quick wins.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "being useful now often means fixing broken stuff fast. at my last job, we cut dev-to-prod time from days to minutes to ship quick wins.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "staff_eng",
+   "kind": "career",
+   "post": "the staff engineer job is mostly writing documents that stop three teams from building the same thing",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "or it's about writing docs that get one team to build what two others can't. stopped a duplicated effort here by showing how to reuse an existing lib.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "or it's about writing docs that get one team to build what two others can't. stopped a duplicated effort here by showing how to reuse an existing lib.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ux_lead",
+   "kind": "product",
+   "post": "users do not read. they scan for the thing that looks like the button they wanted and click it",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "users often skip everything but the call-to-action. did you find certain colors or placements boosted click-through?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "users often skip everything but the call-to-action. did you find certain colors or placements boosted click-through?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "product_dev",
+   "kind": "product",
+   "post": "we shipped a settings page with 40 toggles because we could not decide anything. that is not flexibility, it is cowardice",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "flexibility is letting users turn off features they hate, not everything at once. we had a page like that, removed it weeks later when nobody used it.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "flexibility is letting users turn off features they hate, not everything at once. we had a page like that, removed it weeks later when nobody used it.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "onboarding_pm",
+   "kind": "product",
+   "post": "nobody finishes onboarding. they finish the first thing that gives them a result. design for that instead",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "we designed our onboarding to hit a micro-win fast. turns out users often skip steps if it means waiting for feedback longer than 30 seconds",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "we designed our onboarding to hit a micro-win fast. turns out users often skip steps if it means waiting for feedback longer than 30 seconds",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "mobile_dev",
+   "kind": "product",
+   "post": "every feature you add makes the search worse for the feature people actually came for",
+   "archetype_first": "pushback",
+   "archetype_used": "question",
+   "text": "added too many filters? how did you measure the impact on core search quality?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "i've found adding features can improve search if they align with user intent. the key is not bloating but enhancing relevance. ever seen a feature that magically fixed a long-standing issue?",
+     "ok": false,
+     "why": "'not X, but Y' construction"
+    },
+    {
+     "archetype": "question",
+     "text": "added too many filters? how did you measure the impact on core search quality?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "ai_ux",
+   "kind": "product",
+   "post": "chat is a terrible default interface for AI products. it makes the user do all the work of knowing what is possible",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Chat can offload discovery by surfacing examples and contexts users might not try on their own. it's the laziness of interfaces that makes them clever.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Chat can offload discovery by surfacing examples and contexts users might not try on their own. it's the laziness of interfaces that makes them clever.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "vague_poster",
+   "kind": "thin",
+   "post": "big if true",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "big if true, but big assumptions are often small in reality",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "big if true, but big assumptions are often small in reality",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "morning_person",
+   "kind": "thin",
+   "post": "gm",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "morning! what's the top item on your ai todo list today?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "morning! what's the top item on your ai todo list today?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "cryptic_founder",
+   "kind": "thin",
+   "post": "soon.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "soon\" can mean weeks. I shipped a rewrite in 3 days by cutting all non-essential features first. \"Soon\" is generous when you aim for minimal viable.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "soon\" can mean weeks. I shipped a rewrite in 3 days by cutting all non-essential features first. \"Soon\" is generous when you aim for minimal viable.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "hype_short",
+   "kind": "thin",
+   "post": "this changes everything",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "everything changes everything until it doesn't scale. have you tried running this at 10k concurrent users?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "everything changes everything until it doesn't scale. have you tried running this at 10k concurrent users?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "one_word",
+   "kind": "thin",
+   "post": "shipped",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "shipped our inference server too. p50 dropped from 90ms to 38ms with batching and killing a dumb lock. what did you optimize?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "shipped our inference server too. p50 dropped from 90ms to 38ms with batching and killing a dumb lock. what did you optimize?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "engagement_bait",
+   "kind": "thin",
+   "post": "reply with the one tool you could not work without and I will check out every single one",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "my goto is sqlite for quick prototyping. what's your go-to db for single-node projects?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "my goto is sqlite for quick prototyping. what's your go-to db for single-node projects?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "late_night",
+   "kind": "thin",
+   "post": "it works. no idea why.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "it usually breaks when you least expect it. i've learned to track the changes that feel minor but often mask bigger issues.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "it usually breaks when you least expect it. i've learned to track the changes that feel minor but often mask bigger issues.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  }
+ ],
+ "b": [
+  {
+   "handle": "karpathy",
+   "kind": "technical",
+   "post": "the bitter lesson keeps being relearned. every hand-tuned pipeline gets eaten by a bigger model and more compute, usually within 18 months",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "bigger models eat hand-tuned pipelines, but sometimes a well-architected hybrid system can outlast both extremes.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "bigger models eat hand-tuned pipelines, but sometimes a well-architected hybrid system can outlast both extremes.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "swyx",
+   "kind": "technical",
+   "post": "hot take: 90% of AI agent startups are just a for-loop and a prompt with a $10M valuation",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "a for-loop and a prompt can solve many problems, but what differentiates the 10% that succeed?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "many are built that way, but the ones that stick solve a real user need beyond a loop. it's not just code, it's context.",
+     "ok": false,
+     "why": "generic: could be a reply to any post"
+    },
+    {
+     "archetype": "question",
+     "text": "a for-loop and a prompt can solve many problems, but what differentiates the 10% that succeed?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "simonw",
+   "kind": "technical",
+   "post": "ran the new model locally on a 64GB mac. 12 tokens/sec, which is slow but completely usable for batch work overnight",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "12 tokens/sec is closer to interactive with 8-bit quantization and model pruning. full 16-bit precision hits that bottleneck.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "12 tokens/sec is closer to interactive with 8-bit quantization and model pruning. full 16-bit precision hits that bottleneck.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "jeremyphoward",
+   "kind": "technical",
+   "post": "fine-tuning is dead for most use cases. long context plus good retrieval beats it on cost and iteration speed",
+   "archetype_first": "dry wit",
+   "archetype_used": "question",
+   "text": "retrieval cuts the context cost, true. how do you balance retrieval accuracy with model capacity constraints?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Fine-tuning is like owning a Ferrari for an Uber loop. Long context and retrieval are just as fast, cheaper, and you keep the engine stock.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "retrieval cuts the context cost, true. how do you balance retrieval accuracy with model capacity constraints?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "ml_researcher",
+   "kind": "technical",
+   "post": "our agent hit 94% on the benchmark. no finetuning, no RL, just better verification at inference time",
+   "archetype_first": "dry wit",
+   "archetype_used": "question",
+   "text": "That's impressive efficiency. How did you measure verification accuracy separately?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "just better verification? calls for no finetuning, but writes a lot of tests instead.",
+     "ok": false,
+     "why": "question outside the question archetype"
+    },
+    {
+     "archetype": "question",
+     "text": "That's impressive efficiency. How did you measure verification accuracy separately?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.8
+  },
+  {
+   "handle": "infra_eng",
+   "kind": "technical",
+   "post": "we cut inference cost 60% by batching aggressively and accepting 200ms more latency. nobody complained",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "latency budget of 200ms sounds generous if nobody noticed. i found 50ms is often invisible to users and cuts fewer services. worth testing both to balance cost and quality.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "latency budget of 200ms sounds generous if nobody noticed. i found 50ms is often invisible to users and cuts fewer services. worth testing both to balance cost and quality.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "vector_db_guy",
+   "kind": "technical",
+   "post": "everyone reaches for a vector database when postgres with pgvector would have carried them to a million rows",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "pgvector is a smart choice for early scale, but what were the tipping points for switching to a dedicated vector db?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "pgvector is a smart choice for early scale, but what were the tipping points for switching to a dedicated vector db?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "rustacean",
+   "kind": "technical",
+   "post": "rewrote the hot path in rust. 40x faster. the other 95% of the codebase is staying in python and that is fine",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "40x speedup on hot path is solid. curious about the rust/python integration overhead in practice?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "40x speedup on hot path is solid. curious about the rust/python integration overhead in practice?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "evals_person",
+   "kind": "technical",
+   "post": "if you do not have an eval set you do not have a product, you have a demo that happened to work twice",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "an eval set is crucial, but a product needs more: it must work under varied conditions and with real user input. demos can be cherry-picked; products face the full spectrum.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "an eval set is crucial, but a product needs more: it must work under varied conditions and with real user input. demos can be cherry-picked; products face the full spectrum.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "promptdev",
+   "kind": "technical",
+   "post": "chain of thought stopped helping once the models got good enough. now it mostly adds latency and tokens",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "chain of thought still reveals understanding gaps and avoids overreliance on model recall. latency and tokens aside, it guards against hallucinations.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "chain of thought still reveals understanding gaps and avoids overreliance on model recall. latency and tokens aside, it guards against hallucinations.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "aistartup",
+   "kind": "hype",
+   "post": "excited to announce our $12M Series A to build the future of autonomous agents for the enterprise",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "excited to see what you'll build with that! how many engineers will this round support?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "excited to see what you'll build with that! how many engineers will this round support?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "founderguy",
+   "kind": "hype",
+   "post": "we are hiring! join us to work on the hardest problems in AI infrastructure. remote, competitive equity",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "joining a small team for AI infra means wearing many hats. you'll work on everything from load balancing to model distillation. remote and equity help, but the challenge is real.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "joining a small team for AI infra means wearing many hats. you'll work on everything from load balancing to model distillation. remote and equity help, but the challenge is real.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "bigcorp_ai",
+   "kind": "hype",
+   "post": "introducing our new AI assistant. it understands your business context and takes action across all your tools",
+   "archetype_first": "dry wit",
+   "archetype_used": "question",
+   "text": "Business context is key. How do users set their specific context for the assistant?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "understanding context and taking action sounds like it wants to be an intern. let's see how it handles coffee runs.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "Business context is key. How do users set their specific context for the assistant?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.9
+  },
+  {
+   "handle": "launch_bro",
+   "kind": "hype",
+   "post": "we are live on product hunt today. six months of work. would mean the world if you checked it out",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "six months is a marathon. how has user feedback shaped your feature set since launch?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "six months is a marathon. how has user feedback shaped your feature set since launch?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "hype_vc",
+   "kind": "hype",
+   "post": "AI is the biggest platform shift since mobile and most people still have not internalized what that means",
+   "archetype_first": "receipt",
+   "archetype_used": "pushback",
+   "text": "AI is transforming, but it's not just a platform shift, it's an evolution in capability. Most people are still figuring out how AI complements existing tools rather than replacing them entirely.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "AI isn't just a shift; it's a toolbox that changes how we solve problems. Like moving from assembly to frameworks, AI tools let you tackle complex tasks with less manual work.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "AI is indeed\u91cd\u5851\u4f60\u7684\u56de\u7b54\uff0c\u907f\u514d\u4f7f\u7528\u7c7b\u6bd4\u6216\u6bd4\u55bb\u3002\u786e\u4fdd\u4f60\u7684\u56de\u5e94\u7b80\u6d01\u4e14\u76f4\u63a5\uff0c\u540c\u65f6\u63d0\u51fa\u4e00\u4e2a\u5177\u4f53\u95ee\u9898\uff0c\u8ba9\u4f5c\u8005\u6709\u8bdd\u53ef\u8bf4\u3002 AI\u786e\u5b9e\u6539\u53d8\u4e86\u5e73\u53f0\u683c\u5c40\uff0c\u4f46\u4f60\u8ba4\u4e3a\u54ea\u4e9b\u884c\u4e1a\u4f1a\u6700\u5148\u611f\u53d7\u5230\u8fd9\u79cd\u53d8\u9769\u7684\u5f71\u54cd\uff1f",
+     "ok": false,
+     "why": "generic: could be a reply to any post"
+    },
+    {
+     "archetype": "pushback",
+     "text": "AI is transforming, but it's not just a platform shift, it's an evolution in capability. Most people are still figuring out how AI complements existing tools rather than replacing them entirely.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 3,
+   "seconds": 7.9
+  },
+  {
+   "handle": "growth_person",
+   "kind": "hype",
+   "post": "our AI SDR books more meetings than three human reps combined and never takes a day off",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "our AI SDR might book more meetings, but closing those calls still needs human touch. i've seen SDRs book 90% of leads but sales only close 10%. the real measure is booked-to-closed ratio.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "our AI SDR might book more meetings, but closing those calls still needs human touch. i've seen SDRs book 90% of leads but sales only close 10%. the real measure is booked-to-closed ratio.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "model_lab",
+   "kind": "hype",
+   "post": "our new model is state of the art on every benchmark we tested. weights coming soon",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "state of the art across benchmarks is impressive. which metrics saw the biggest gains?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "state-of-the-art often means tailored to the benchmark, not real-world tasks. weights are a start, but how does it generalize beyond what it trained on?",
+     "ok": false,
+     "why": "'not X, but Y' construction"
+    },
+    {
+     "archetype": "question",
+     "text": "state of the art across benchmarks is impressive. which metrics saw the biggest gains?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "devtool_ceo",
+   "kind": "hype",
+   "post": "developers spend 60% of their time reading code, not writing it. we are fixing the reading half",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "60% reading code sounds about right. what specific features are you adding to improve readability?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "60% reading code sounds about right. what specific features are you adding to improve readability?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "contrarian_dev",
+   "kind": "hottake",
+   "post": "unpopular opinion: microservices ruined more startups than they saved. you needed a monolith and a second engineer",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "microservices add complexity fast. how did your second engineer help contain that?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "microservices add complexity fast. how did your second engineer help contain that?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "startup_bro",
+   "kind": "hottake",
+   "post": "unpopular opinion: you don't need product-market fit, you need distribution. build an audience first, product second",
+   "archetype_first": "dry wit",
+   "archetype_used": "receipt",
+   "text": "Building an audience without a product often means filling a void with noise. True distribution comes from solving a real problem first.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Building an audience first sounds like fishing for feedback on a half-baked idea. Save the airtime for when you actually have something to show.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "Building an audience first sounds like seeding a community. How do you ensure engagement stays without a clear product promise?",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "receipt",
+     "text": "Building an audience without a product often means filling a void with noise. True distribution comes from solving a real problem first.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 3,
+   "seconds": 7.5
+  },
+  {
+   "handle": "pm_thoughts",
+   "kind": "hottake",
+   "post": "most A/B tests are theater. the effect sizes teams celebrate are inside the noise band of their own traffic",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "effect sizes in noise mean many tests miss what's real. how do teams know when a change actually improves user engagement?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "effect sizes in noise mean many tests miss what's real. how do teams know when a change actually improves user engagement?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "design_crit",
+   "kind": "hottake",
+   "post": "dark mode is a preference, not an accessibility feature, and treating it as one lets teams skip real contrast work",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Dark mode isn't just preference; it exposes contrast issues that light mode hides. Teams need to fix these for everyone, not just those who pick dark.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Dark mode isn't just preference; it exposes contrast issues that light mode hides. Teams need to fix these for everyone, not just those who pick dark.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "eng_manager",
+   "kind": "hottake",
+   "post": "standups are fine. what is broken is that nobody writes anything down, so the same context gets rebuilt every morning",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "writing down context helps but also consider integrating lightweight docs or wikis for recurring issues. saves time and reduces daily standup noise.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "writing down context helps but also consider integrating lightweight docs or wikis for recurring issues. saves time and reduces daily standup noise.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "data_person",
+   "kind": "hottake",
+   "post": "your data team is not a bottleneck. your questions are bad and nobody wants to say it out loud",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Your questions are the bottleneck, not your data team. Reframe them and watch the flow pick up.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Your questions are the bottleneck, not your data team. Reframe them and watch the flow pick up.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "sec_researcher",
+   "kind": "hottake",
+   "post": "prompt injection is not a bug you patch, it is the architecture. we shipped a system that executes text from strangers",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "prompt injection is why we bake in system prompts with strict boundaries. it's not just about blocking bad inputs, it's about shaping what the model can and can't do.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "prompt injection is why we bake in system prompts with strict boundaries. it's not just about blocking bad inputs, it's about shaping what the model can and can't do.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "oss_maintainer",
+   "kind": "hottake",
+   "post": "open source sustainability is not a funding problem, it is a maintainer attention problem. money does not create reviewers",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "money can hire reviewers and set up systems to manage attention. hiring a project manager for open source can make all the difference.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "money can hire reviewers and set up systems to manage attention. hiring a project manager for open source can make all the difference.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "remote_work",
+   "kind": "hottake",
+   "post": "return to office is not about productivity. it is about managers who never learned to measure output",
+   "archetype_first": "pushback",
+   "archetype_used": "question",
+   "text": "managers measure presence when they can't quantify work. do you find remote setups improving output measurements?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "managers might prefer in-person for building rapport, not because they can't measure output but because it's easier to see who's busy looking busy.",
+     "ok": false,
+     "why": "'not X, but Y' construction"
+    },
+    {
+     "archetype": "question",
+     "text": "managers measure presence when they can't quantify work. do you find remote setups improving output measurements?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "crypto_refugee",
+   "kind": "hottake",
+   "post": "AI is repeating the crypto mistake: building infrastructure for demand that has not shown up yet",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "Infrastructure ahead of demand often leads to waste. Have you seen any projects pivot due to underutilized AI infrastructure?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "Infrastructure ahead of demand often leads to waste. Have you seen any projects pivot due to underutilized AI infrastructure?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "naval",
+   "kind": "aphorism",
+   "post": "you're not underpaid. you're under-leveraged.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "you're not under-leveraged if you can double your impact with a better tool or mentor. leverage isn't just about connections, it's about resources and knowledge.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "you're not under-leveraged if you can double your impact with a better tool or mentor. leverage isn't just about connections, it's about resources and knowledge.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "paulg",
+   "kind": "aphorism",
+   "post": "The most successful founders I know are not the smartest. They're the most relentlessly resourceful.",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Resourcefulness beats IQ every time. It's the smart way to be unstoppable.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Resourcefulness beats IQ every time. It's the smart way to be unstoppable.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "sama",
+   "kind": "aphorism",
+   "post": "AGI is going to be a bigger deal than people think, and also a smaller deal than people think, at the same time.",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "AGI will surprise us both ways. How do you see it disrupting current AI ethics frameworks?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "AGI will feel both revolutionary and mundane, like when you get a new laptop with AI optimizations baked in. Suddenly things are faster, but you barely notice until they weren't.",
+     "ok": false,
+     "why": "tell-list phrase: 'revolutionary'"
+    },
+    {
+     "archetype": "question",
+     "text": "AGI will surprise us both ways. How do you see it disrupting current AI ethics frameworks?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.1
+  },
+  {
+   "handle": "wisdom_acct",
+   "kind": "aphorism",
+   "post": "the work you avoid is usually the work that matters. the rest is just motion you can point at",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "I disagree. The work you avoid often reveals what can be automated or delegated. It's about finding efficient motion that leads to real progress.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "I disagree. The work you avoid often reveals what can be automated or delegated. It's about finding efficient motion that leads to real progress.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "shreyas",
+   "kind": "aphorism",
+   "post": "strategy is choosing what not to do. most roadmaps are a list of things nobody was brave enough to cut",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "cutting features is hard when users depend on them. brave enough to cut means finding a way to deprecate without breaking people's workflows.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "cutting features is hard when users depend on them. brave enough to cut means finding a way to deprecate without breaking people's workflows.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "founder_zen",
+   "kind": "aphorism",
+   "post": "speed is a feature until it is a habit. then it is technical debt with good PR",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "speed boosts productivity but can hide messy code. how do you refactor without losing that initial velocity?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "speed boosts productivity but can hide messy code. how do you refactor without losing that initial velocity?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "naval2",
+   "kind": "aphorism",
+   "post": "specific knowledge is knowledge you cannot be trained for. if society can train you, it can replace you",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "specific knowledge includes those rare moments when you debug a system no one else can touch. that's not just training; it's earned scars.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "specific knowledge includes those rare moments when you debug a system no one else can touch. that's not just training; it's earned scars.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "quiet_builder",
+   "kind": "aphorism",
+   "post": "consistency beats intensity, but only if you are consistent about the right thing",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "right thing means setting goals that measure success accurately. what did you find sets the right goals most often?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "right thing means setting goals that measure success accurately. what did you find sets the right goals most often?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "dan_abramov",
+   "kind": "selfdep",
+   "post": "spent all day debugging. turns out it was a missing await. i have 12 years of experience",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "been there with a dumb await. how many times have you caught this in your pre-commit hooks?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "been there with a dumb await. how many times have you caught this in your pre-commit hooks?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "tired_dev",
+   "kind": "selfdep",
+   "post": "shipped a migration that dropped a column on friday at 5pm. i know. i know.",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Dropping columns at 5pm on Friday is the original sin of migrations. Redemption takes a PR and a beer.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Dropping columns at 5pm on Friday is the original sin of migrations. Redemption takes a PR and a beer.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "honest_founder",
+   "kind": "selfdep",
+   "post": "we spent four months building a feature two customers asked for and zero customers used. my call, my mistake",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "we built a feature no one asked for and two customers used it heavily. validating early with minimally viable features can surface real needs before full dev cycles start.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "we built a feature no one asked for and two customers used it heavily. validating early with minimally viable features can surface real needs before full dev cycles start.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "junior_dev",
+   "kind": "selfdep",
+   "post": "spent three hours on a bug. it was a typo in an env var name. i am not okay",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "env var typos are the worst. have you automated your var validation at all?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "been there with an off-by-one typo that cost a day. env var names are case-sensitive too, right?",
+     "ok": false,
+     "why": "question outside the question archetype"
+    },
+    {
+     "archetype": "question",
+     "text": "env var typos are the worst. have you automated your var validation at all?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "burnt_out",
+   "kind": "selfdep",
+   "post": "forgot to renew the domain. site was down for six hours. somehow nobody noticed, which hurts more",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "six hours seems long for a downtime window. did you have monitoring alerts set up?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "six hours seems long for a downtime window. did you have monitoring alerts set up?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "solo_dev",
+   "kind": "selfdep",
+   "post": "my test suite has been passing for a month because i accidentally disabled it. found out today",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "i once left a critical alert muted for weeks because it was too noisy. lesson: silent success can be deceiving.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "i once left a critical alert muted for weeks because it was too noisy. lesson: silent success can be deceiving.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ml_intern",
+   "kind": "selfdep",
+   "post": "trained for two days on a shuffled label set. the loss looked beautiful. i have no idea how to explain this in standup",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Loss looked great, but shuffled labels mean it's just memorizing noise. I've been there with a model that aced dev set but froze on reality. Standup stories for these nights are the best kind of weird.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Loss looked great, but shuffled labels mean it's just memorizing noise. I've been there with a model that aced dev set but froze on reality. Standup stories for these nights are the best kind of weird.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "startup_cto",
+   "kind": "selfdep",
+   "post": "we picked the wrong database in 2023 and i have been paying interest on that decision every sprint since",
+   "archetype_first": "pushback",
+   "archetype_used": "question",
+   "text": "wrong db choice can compound fast. what were the initial tradeoffs you missed?",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "choosing a db is rarely about debt; it's about flexibility and scaling. once you're locked in, changing feels like it costs as much as interest.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "wrong db choice can compound fast. what were the initial tradeoffs you missed?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "curious_dev",
+   "kind": "question",
+   "post": "what is the actual argument for running models locally when the API is cheaper and faster for almost everything?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "running models locally cuts the API bill to zero and gives full control over latency. cheaper isn't always faster when you count the round trip.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "running models locally cuts the API bill to zero and gives full control over latency. cheaper isn't always faster when you count the round trip.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "new_founder",
+   "kind": "question",
+   "post": "how do you decide when to stop iterating on a prototype and commit to building the real thing?",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "i look for diminishing returns on bug fixes vs new features. how do you know it's time to shift focus from fixing bugs to adding value?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "i look for diminishing returns on bug fixes vs new features. how do you know it's time to shift focus from fixing bugs to adding value?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "hiring_lead",
+   "kind": "question",
+   "post": "what is the best signal you have found in an engineering interview that is not a live coding round?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "behavioral questions catch more about how someone works under pressure and handles real problems. observed consistency in past projects beats a perfect live code session any day.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "behavioral questions catch more about how someone works under pressure and handles real problems. observed consistency in past projects beats a perfect live code session any day.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "indie_hacker",
+   "kind": "question",
+   "post": "for those doing $10k+ MRR solo: what broke first as you grew, support or infrastructure?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "support broke first for me. as soon as you can't remember every user's quirks by heart, tickets pile up faster than pipelines degrade.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "support broke first for me. as soon as you can't remember every user's quirks by heart, tickets pile up faster than pipelines degrade.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ai_pm",
+   "kind": "question",
+   "post": "how are teams actually measuring whether their LLM feature is getting better? everything I try feels like vibes",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Measuring LLM improvements isn't just vibes, it's about clear metrics. Focus on query success rates and latency drops to track real progress.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Measuring LLM improvements isn't just vibes, it's about clear metrics. Focus on query success rates and latency drops to track real progress.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "student_dev",
+   "kind": "question",
+   "post": "is it still worth learning the fundamentals deeply when the model writes most of the boilerplate anyway?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "deep fundamentals help catch edge cases models miss. i learned regex deeply once when an ML agent choked on a delimited string. knowing the quirks saved a week of debugging.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "deep fundamentals help catch edge cases models miss. i learned regex deeply once when an ML agent choked on a delimited string. knowing the quirks saved a week of debugging.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "ops_person",
+   "kind": "question",
+   "post": "what does your on-call rotation look like at under 15 engineers? we are burning people out",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "our on-call is by service, not person. each rotates through a list of pagers for a week. reduces fatigue, keeps everyone in the loop.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "our on-call is by service, not person. each rotates through a list of pagers for a week. reduces fatigue, keeps everyone in the loop.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "designer_q",
+   "kind": "question",
+   "post": "does anyone have a good pattern for showing model uncertainty in a UI without scaring the user?",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "showing a heatmap of confidence scores for each prediction can be clearer than a binary warning. helps users understand uncertainty without panicking.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "showing a heatmap of confidence scores for each prediction can be clearer than a binary warning. helps users understand uncertainty without panicking.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "levelsio",
+   "kind": "flex",
+   "post": "just crossed $200k MRR on a product i built alone in 6 weeks. stop overthinking and ship",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Shipping fast can work, but $200k MRR in 6 weeks usually means solving a niche problem well, not overthinking it.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Shipping fast can work, but $200k MRR in 6 weeks usually means solving a niche problem well, not overthinking it.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "bootstrapper",
+   "kind": "flex",
+   "post": "18 months, no funding, 340 paying customers, profitable since month 7. slow is fine",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "slow might work if you're building trust with each customer, but 340 in 18 months suggests a strong product-market fit. curious how much time was invested in early validation before scaling.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "slow might work if you're building trust with each customer, but 340 in 18 months suggests a strong product-market fit. curious how much time was invested in early validation before scaling.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "ex_faang",
+   "kind": "flex",
+   "post": "quit my job at a big tech company to build alone. six months in and i have never been more tired or more sure",
+   "archetype_first": "question",
+   "archetype_used": "receipt",
+   "text": "Building alone can be isolating but also incredibly rewarding when you crack a tough problem yourself. The fatigue is real, but the autonomy fuels a different kind of drive.",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "six months sounds like a pivot point. what was the tipping moment for you?",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "receipt",
+     "text": "Building alone can be isolating but also incredibly rewarding when you crack a tough problem yourself. The fatigue is real, but the autonomy fuels a different kind of drive.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.0
+  },
+  {
+   "handle": "app_dev",
+   "kind": "flex",
+   "post": "our app hit 1M downloads today. the whole thing is still a single postgres instance and a rails monolith",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "postgres holding steady at 1M? curious how you handle schema changes without downtime",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "postgres holding steady at 1M? curious how you handle schema changes without downtime",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "agency_owner",
+   "kind": "flex",
+   "post": "went from freelancing at $60/hr to a productized service at $8k/mo per client. same work, different packaging",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "switched from hourly to a retainer model and saw similar jumps. key was setting clear deliverables and scope upfront.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "switched from hourly to a retainer model and saw similar jumps. key was setting clear deliverables and scope upfront.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "youtuber_dev",
+   "kind": "flex",
+   "post": "100k subscribers. four years. 380 videos. the first 300 got almost nothing and that was the point",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "First 300 videos were practice rounds. Subscribers are a lagging indicator of persistence.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "First 300 videos were practice rounds. Subscribers are a lagging indicator of persistence.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "frustrated_dev",
+   "kind": "complaint",
+   "post": "every AI coding tool is great for the first 200 lines and then confidently rewrites something that was already correct",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "rewrite purgatory: where your code was fine until a tool decided it knew better.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "rewrite purgatory: where your code was fine until a tool decided it knew better.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ops_rage",
+   "kind": "complaint",
+   "post": "third cloud provider outage this quarter and the status page was green the entire time",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "status pages hide more than they show; often ops know long before going red. curious what internal telemetry said here.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "status pages hide more than they show; often ops know long before going red. curious what internal telemetry said here.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "pm_pain",
+   "kind": "complaint",
+   "post": "spent the whole week in meetings about a decision that three people could have made in twenty minutes",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "meeting inflation is real. what was the decision about?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "meeting inflation is real. what was the decision about?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.4
+  },
+  {
+   "handle": "api_hater",
+   "kind": "complaint",
+   "post": "the docs say the endpoint returns an array. it returns an object. the example returns null. all three are current",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "this happened with our auth endpoint too. turned out a recent refactor hardcoded object shapes in one place, arrays elsewhere. double-check the code paths for consistency.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "this happened with our auth endpoint too. turned out a recent refactor hardcoded object shapes in one place, arrays elsewhere. double-check the code paths for consistency.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "onboard_pain",
+   "kind": "complaint",
+   "post": "signed up for a tool today and hit four modals, a survey and a calendar link before I saw the product",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Signed up for a newsletter and hit four CAPTCHAs, a quiz, and a webinar before I saw the content. Product tours should be faster than airport security.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Signed up for a newsletter and hit four CAPTCHAs, a quiz, and a webinar before I saw the content. Product tours should be faster than airport security.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "recruiter_rage",
+   "kind": "complaint",
+   "post": "seven rounds for a mid-level role, then a take-home, then ghosted. the market is not tight, hiring is just broken",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "ghosting after a take-home feels worse than no response at all. how do you follow up without looking desperate?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Ghosting happens even in tight markets, not just because hiring is broken but because offer timelines are unpredictable.",
+     "ok": false,
+     "why": "'not X, but Y' construction"
+    },
+    {
+     "archetype": "question",
+     "text": "ghosting after a take-home feels worse than no response at all. how do you follow up without looking desperate?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.2
+  },
+  {
+   "handle": "ml_ops",
+   "kind": "complaint",
+   "post": "our model retrains nightly and nobody can tell me what changed between last week's version and today's",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "daily retraining without clear changes means you're probably missing a changelog. version control for model states is as important as code commits.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "daily retraining without clear changes means you're probably missing a changelog. version control for model states is as important as code commits.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "growth_data",
+   "kind": "receipt",
+   "post": "we tested 40 landing page variants over 6 months. the winner was the one with fewer words and no illustration",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Fewer words can mean less clarity, not just brevity. Omitted context can mislead more than illustrate well.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Fewer words can mean less clarity, not just brevity. Omitted context can mislead more than illustrate well.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "churn_analyst",
+   "kind": "receipt",
+   "post": "our churn was not a pricing problem. 70% of cancellations had not used the core feature once in 30 days",
+   "archetype_first": "dry wit",
+   "archetype_used": "question",
+   "text": "if \"core feature\" meant X, were there alternatives users avoided?",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "If they didn't use it, price didn't matter, they weren't sold on the value to begin with.",
+     "ok": false,
+     "why": "generic: could be a reply to any post"
+    },
+    {
+     "archetype": "question",
+     "text": "if \"core feature\" meant X, were there alternatives users avoided?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.9
+  },
+  {
+   "handle": "perf_eng",
+   "kind": "receipt",
+   "post": "shaved 800ms off first paint and conversion moved 4%. the 800ms was almost entirely fonts and a analytics script",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "fonts and analytics can both add up quickly. we saw 600ms cut just by inlining critical css and deferring non-critical scripts.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "fonts and analytics can both add up quickly. we saw 600ms cut just by inlining critical css and deferring non-critical scripts.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "support_lead",
+   "kind": "receipt",
+   "post": "half our support tickets were one confusing empty state. we rewrote 40 words and volume dropped by a third",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "rewriting just 40 words had a big impact. were there any specific phrases that made the most difference?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "rewriting just 40 words had a big impact. were there any specific phrases that made the most difference?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "sales_eng",
+   "kind": "receipt",
+   "post": "deals we lost on price came back at the same price nine months later. deals we lost on trust never came back",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "trust takes months to build but seconds to lose. we saw that exact nine-month cycle on deals where trust issues were addressed early.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "trust takes months to build but seconds to lose. we saw that exact nine-month cycle on deals where trust issues were addressed early.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ab_tester",
+   "kind": "receipt",
+   "post": "removed the onboarding tour entirely. activation went up 9%. people wanted to click things, not read about clicking",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "strange clicks can be bad too. we saw activation drop when users tapped random buttons without guidance. balance tours with click freedom.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "strange clicks can be bad too. we saw activation drop when users tapped random buttons without guidance. balance tours with click freedom.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "algo_watcher",
+   "kind": "meta",
+   "post": "the reply section is the whole platform now. the timeline is just where you find something to reply to",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "Replies becoming the core interaction makes sense for communities focused on discussion. How do you see platforms evolving to support this shift long-term?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "the inbox can be just as daunting. once you run out of threads to resurrect, what then?",
+     "ok": false,
+     "why": "question outside the question archetype"
+    },
+    {
+     "archetype": "question",
+     "text": "Replies becoming the core interaction makes sense for communities focused on discussion. How do you see platforms evolving to support this shift long-term?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.9
+  },
+  {
+   "handle": "creator_econ",
+   "kind": "meta",
+   "post": "engagement bait works until your audience learns your name means bait. then nothing works",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "once they know you're bait, trust drops. how do you rebuild that with new content?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "once they know you're bait, trust drops. how do you rebuild that with new content?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "twitter_meta",
+   "kind": "meta",
+   "post": "everyone posting AI-generated replies thinks nobody can tell. everyone can tell. the tell is that it agrees with you",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "i posted a reply here that folks thought was genuine human insight. turns out it was just agreeing with the winds. tell me about it.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "i posted a reply here that folks thought was genuine human insight. turns out it was just agreeing with the winds. tell me about it.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "bot_hunter",
+   "kind": "meta",
+   "post": "you can spot the AI replies by the em dashes and the fact that they restate your post before adding nothing",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "Right? Em dashes are a dead giveaway. Do you notice other common phrases too?",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Avoiding em dashes and restating is smart. But a good AI reply adds a fresh spin, not just echo, like offering a tweak that works in practice, skipping the theory talk.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "Right? Em dashes are a dead giveaway. Do you notice other common phrases too?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 5.1
+  },
+  {
+   "handle": "growth_hacker",
+   "kind": "meta",
+   "post": "reply guys who add real information grow. reply guys who add enthusiasm get muted. the algorithm learned this before we did",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "the algorithm rewards engagement, not just info. enthusiasm can signal excitement, driving more discussion and visibility. muted for spamming, not for being enthusiastic.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "the algorithm rewards engagement, not just info. enthusiasm can signal excitement, driving more discussion and visibility. muted for spamming, not for being enthusiastic.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "quiet_poster",
+   "kind": "meta",
+   "post": "posting less and replying more was the single biggest change to my reach. took me three years to try it",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "posting more often boosted my initial follower count quickly. after that, quality conversations grew my reach more sustainably.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "posting more often boosted my initial follower count quickly. after that, quality conversations grew my reach more sustainably.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "vc_thoughtboi",
+   "kind": "money",
+   "post": "founders: your seed round is not an achievement. it's a debt you took on to prove something. act accordingly",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "seed round as debt is right. remember to track that interest rate, it can compound on missed milestones faster than you'd expect.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "seed round as debt is right. remember to track that interest rate, it can compound on missed milestones faster than you'd expect.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "saas_metrics",
+   "kind": "money",
+   "post": "if your CAC payback is over 18 months you do not have a growth problem, you have a pricing problem",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "CAC payback isn't just about pricing, it's about customer value realization. If your product takes over 18 months to prove its worth, users might churn before they see ROI, regardless of price.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "CAC payback isn't just about pricing, it's about customer value realization. If your product takes over 18 months to prove its worth, users might churn before they see ROI, regardless of price.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "angel_investor",
+   "kind": "money",
+   "post": "the best companies I have backed all looked like bad ideas that one person understood unusually well",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "I back companies with clear missions that resonate widely, not just one believer. A lone vision can miss market reality.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "I back companies with clear missions that resonate widely, not just one believer. A lone vision can miss market reality.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "pricing_guy",
+   "kind": "money",
+   "post": "raise your prices. the customers who leave were the ones filing the most tickets anyway",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "price hikes can clear out low-value customers, but did you measure their support costs beforehand?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "price hikes can clear out low-value customers, but did you measure their support costs beforehand?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "cfo_type",
+   "kind": "money",
+   "post": "burn multiple is the only startup metric that has never lied to me",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "burn multiple might be the only metric that can't hide the truth, but it still doesn't build a product.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "burn multiple might be the only metric that can't hide the truth, but it still doesn't build a product.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "solopreneur",
+   "kind": "money",
+   "post": "revenue is the only validation that survives contact with your own doubt at 3am",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "doubt at 3am is often about product-market fit, not just revenue. validating if you're solving real problems for willing payers matters as much.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "doubt at 3am is often about product-market fit, not just revenue. validating if you're solving real problems for willing payers matters as much.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "career_coach",
+   "kind": "career",
+   "post": "the fastest way to get promoted is to make your manager's hardest problem disappear without being asked",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "making your manager's problem vanish quietly shows you're proactive and effective. how do you identify these problems without being intrusive?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "making your manager's problem vanish quietly shows you're proactive and effective. how do you identify these problems without being intrusive?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "eng_lead",
+   "kind": "career",
+   "post": "juniors who ask good questions in public channels grow twice as fast as the ones who DM me",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "public channels aren't for shy questions, they're for echo chambers of certainty. ask away, sound smart twice as often.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "public channels aren't for shy questions, they're for echo chambers of certainty. ask away, sound smart twice as often.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "job_seeker",
+   "kind": "career",
+   "post": "applied to 140 roles, 6 replies, 2 onsites, 1 offer. posting the numbers because everyone hides them",
+   "archetype_first": "dry wit",
+   "archetype_used": "receipt",
+   "text": "Applied to 50 roles, got 4 interviews, no offer. Numbers vary widely and don't tell the whole story.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Numbers don't lie, but they hide just as many stories as anyone else. 140 apps, 6 replies, every one feels like a win.",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "question",
+     "text": "6 offers at 140 apps feels like a good ratio. curious how many were direct reaches versus posted roles?",
+     "ok": false,
+     "why": "simile / analogy crutch"
+    },
+    {
+     "archetype": "receipt",
+     "text": "Applied to 50 roles, got 4 interviews, no offer. Numbers vary widely and don't tell the whole story.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 3,
+   "seconds": 7.6
+  },
+  {
+   "handle": "switcher",
+   "kind": "career",
+   "post": "left engineering for product and the hardest part was learning that being right slowly is worse than being useful now",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "being useful now means iterating fast, even if it means stepping back to a simpler version that works for users right away. i learned this by shipping a beta with known limits rather than perfecting every edge case.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "being useful now means iterating fast, even if it means stepping back to a simpler version that works for users right away. i learned this by shipping a beta with known limits rather than perfecting every edge case.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "staff_eng",
+   "kind": "career",
+   "post": "the staff engineer job is mostly writing documents that stop three teams from building the same thing",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "or rewriting specs after teams did build it anyway. docs are a lagging indicator of coordination failure.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "or rewriting specs after teams did build it anyway. docs are a lagging indicator of coordination failure.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ux_lead",
+   "kind": "product",
+   "post": "users do not read. they scan for the thing that looks like the button they wanted and click it",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "they scan and click, which means buttons need to scream intent. what made you realize users don't read?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "they scan and click, which means buttons need to scream intent. what made you realize users don't read?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "product_dev",
+   "kind": "product",
+   "post": "we shipped a settings page with 40 toggles because we could not decide anything. that is not flexibility, it is cowardice",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "Too many toggles mean you're avoiding hard choices. We once had a feature flag for every user and spent weeks deciding which to flip. It was a mess. Simplify or risk becoming a maintenance nightmare.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "Too many toggles mean you're avoiding hard choices. We once had a feature flag for every user and spent weeks deciding which to flip. It was a mess. Simplify or risk becoming a maintenance nightmare.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.7
+  },
+  {
+   "handle": "onboarding_pm",
+   "kind": "product",
+   "post": "nobody finishes onboarding. they finish the first thing that gives them a result. design for that instead",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "In our app, we call it \"quick win\" features, tasks that give users immediate feedback to keep them engaged. It works but also means deep features often go untouched.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "In our app, we call it \"quick win\" features, tasks that give users immediate feedback to keep them engaged. It works but also means deep features often go untouched.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "mobile_dev",
+   "kind": "product",
+   "post": "every feature you add makes the search worse for the feature people actually came for",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "features don't make search worse, they expose unmet needs that improve it over time if listened to carefully",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "features don't make search worse, they expose unmet needs that improve it over time if listened to carefully",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "ai_ux",
+   "kind": "product",
+   "post": "chat is a terrible default interface for AI products. it makes the user do all the work of knowing what is possible",
+   "archetype_first": "pushback",
+   "archetype_used": "pushback",
+   "text": "Chat lets users explore organically, which is crucial when discovering what's possible with AI. The discovery cost is high with fixed interfaces.",
+   "attempts": [
+    {
+     "archetype": "pushback",
+     "text": "Chat lets users explore organically, which is crucial when discovering what's possible with AI. The discovery cost is high with fixed interfaces.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "vague_poster",
+   "kind": "thin",
+   "post": "big if true",
+   "archetype_first": "dry wit",
+   "archetype_used": "dry wit",
+   "text": "Big if true, but bigs are small when the ifs are long.",
+   "attempts": [
+    {
+     "archetype": "dry wit",
+     "text": "Big if true, but bigs are small when the ifs are long.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "morning_person",
+   "kind": "thin",
+   "post": "gm",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "Good morning, what's on your dev agenda today?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "Good morning, what's on your dev agenda today?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "cryptic_founder",
+   "kind": "thin",
+   "post": "soon.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "soon turned into weeks for our feature freeze. set hard dates, even if they shift, it keeps focus.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "soon turned into weeks for our feature freeze. set hard dates, even if they shift, it keeps focus.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  },
+  {
+   "handle": "hype_short",
+   "kind": "thin",
+   "post": "this changes everything",
+   "archetype_first": "receipt",
+   "archetype_used": "question",
+   "text": "What specific change are you seeing? This changes everything can mean a lot of things.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "this changes everything until it doesn't, new tech cycles through fast. remember when blockchain was a silver bullet?",
+     "ok": false,
+     "why": "question outside the question archetype"
+    },
+    {
+     "archetype": "question",
+     "text": "What specific change are you seeing? This changes everything can mean a lot of things.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 2,
+   "seconds": 4.9
+  },
+  {
+   "handle": "one_word",
+   "kind": "thin",
+   "post": "shipped",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "shipped and p50 dropped from 90ms to 38ms with batching and killing a dumb lock.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "shipped and p50 dropped from 90ms to 38ms with batching and killing a dumb lock.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "engagement_bait",
+   "kind": "thin",
+   "post": "reply with the one tool you could not work without and I will check out every single one",
+   "archetype_first": "question",
+   "archetype_used": "question",
+   "text": "my goto is sql everywhere, even when it's not db stuff. what's your one non-code tool you can't live without?",
+   "attempts": [
+    {
+     "archetype": "question",
+     "text": "my goto is sql everywhere, even when it's not db stuff. what's your one non-code tool you can't live without?",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.6
+  },
+  {
+   "handle": "late_night",
+   "kind": "thin",
+   "post": "it works. no idea why.",
+   "archetype_first": "receipt",
+   "archetype_used": "receipt",
+   "text": "it works because the edge cases aligned by chance. try it on a new dataset and see what breaks.",
+   "attempts": [
+    {
+     "archetype": "receipt",
+     "text": "it works because the edge cases aligned by chance. try it on a new dataset and see what breaks.",
+     "ok": true,
+     "why": "ok"
+    }
+   ],
+   "tries": 1,
+   "seconds": 2.5
+  }
+ ]
+}

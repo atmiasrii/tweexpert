@@ -68,7 +68,7 @@ def _draft_one(llm: LLM, system: str, source: str, angle_name: str,
                angle_desc: str, reasons: str = "", directives: bool = True) -> str:
     """`directives` off reproduces the pre-guards prompt; the eval harness uses
     it as the A arm. Live code always leaves it on."""
-    from .guards import is_self_deprecating
+    from .guards import is_abstract, is_self_deprecating
     # When the author is already laughing at themselves, correcting them reads
     # as smug and earns a mute (-74) instead of a reply-back (+75).
     warmth = ("This author is being self-deprecating about their own mistake. "
@@ -76,9 +76,15 @@ def _draft_one(llm: LLM, system: str, source: str, angle_name: str,
               "the equivalent thing that got you, or make the joke bigger. "
               "Never mention their experience level.\n"
               if directives and is_self_deprecating(source) else "")
+    # An abstract post gives you no hook, so the model answers with more
+    # abstraction. Force it down to one real case instead.
+    grounding = ("This post is an abstraction. Do NOT answer with more "
+                 "abstraction and do NOT give advice. Name one concrete "
+                 "situation where it held or failed, in plain words.\n"
+                 if directives and is_abstract(source) else "")
     steer = ""
     if directives:
-        steer = (warmth
+        steer = (warmth + grounding
                  + ("Ask exactly one question the author can answer.\n"
                     if angle_name == "question"
                     else "Do NOT ask a question. State your point.\n")
@@ -215,6 +221,10 @@ def quick_reply(session: Session, source_post: str, archetype: str | None = None
     """One reply, fast — for the showcase cards and the extension live feed. Uses
     the current skills and a per-post archetype; skips the critic loop to stay
     responsive, but keeps the deterministic prefilter + an English-only guard."""
+    from .guards import too_thin
+    # "gm" gives you nothing to add. Anything written under it is filler.
+    if too_thin(source_post):
+        return ""
     voice = load_voice_card(session)
     skills = load_skills(session)
     fewshot = retrieve_fewshot(session, source_post)

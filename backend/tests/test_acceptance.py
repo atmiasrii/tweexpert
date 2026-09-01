@@ -276,8 +276,14 @@ def test_t08_prefilter_kills_bad_drafts(session):
     assert prefilter("check https://x.com/thing", parent, card)[0] is False
     assert prefilter("love this #ai #ml", parent, card)[0] is False
     assert prefilter("🔥🔥🔥", parent, card)[0] is False
-    ok, _ = prefilter("constrained decoding holds schema at 7B. measured 40ms.", parent, card)
-    assert ok is True
+    # Numbers that appear nowhere in the parent are now rejected as invented
+    # receipts — the voice card already banned 'no fake "I measured 40ms p50"',
+    # so the old positive example was violating the spec it was testing.
+    assert prefilter("constrained decoding holds schema at 7B. measured 40ms.",
+                     parent, card)[0] is False
+    ok, why = prefilter("constrained decoding holds the schema without a "
+                        "retry loop. that is the part people skip.", parent, card)
+    assert ok is True, why
 
 
 def test_t08_blocklist_discards(session):

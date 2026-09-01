@@ -138,11 +138,84 @@ def generic_reply(text: str, parent_text: str) -> str:
     return "generic: could be a reply to any post"
 
 
+# --- 5. invented numbers -----------------------------------------------------
+# A number that is not in the post and not in the world is a fabricated receipt.
+# The eval caught the worst case: a reply to the single word "shipped" that read
+# "p50 dropped from 90ms to 38ms", lifted from the operator's own corpus and
+# presented as a fresh claim. Saying a false specific thing under someone's post
+# is the fastest route to a correction, a mute, or a screenshot.
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+# Numbers that carry no claim: years, times of day, ordinary counts of things.
+_SAFE_NUM = re.compile(r"^(19|20)\d\d$|^[0-9]$|^1[0-2]$|^24$")
+
+
+def invented_numbers(text: str, parent_text: str) -> str:
+    parent_nums = set(_NUMBER.findall(parent_text or ""))
+    for n in _NUMBER.findall(text):
+        if n in parent_nums or _SAFE_NUM.match(n):
+            continue
+        return f"invented number: {n}"
+    return ""
+
+
+# --- 6. nothing to reply to --------------------------------------------------
+# The research's hard gate: if you have nothing specific to add, skip. A post
+# that says "gm" or "soon." gives you nothing, so anything you write under it
+# is filler by construction.
+_MIN_WORDS = 5
+_MIN_CONTENT_WORDS = 2
+
+
+def too_thin(parent_text: str) -> str:
+    """Deliberately narrow: only the posts that are unambiguously empty ("gm",
+    "soon.", "shipped"). A short post can still be worth answering, so this
+    needs both a tiny word count and almost no content words before it skips."""
+    words = re.findall(r"[a-zA-Z0-9']+", parent_text or "")
+    if len(words) < _MIN_WORDS and len(_content_words(parent_text)) < _MIN_CONTENT_WORDS + 1:
+        return "post is too thin to add anything to"
+    return ""
+
+
+# --- 7. answering an abstraction with more abstraction -----------------------
+# The weakest category in the eval was aphorisms. Naval-style posts have no
+# concrete hook, so the model answers with life advice ("leverage is about
+# resources and knowledge"), which is a lecture, not a reply. The fix is two
+# sided: tell the model to name one concrete case, and reject the advice shape.
+_PROPER = re.compile(r"(?<![.!?]\s)(?<!^)\b(?!I\b)[A-Z][a-z]{2,}")
+_CONCRETE = re.compile(
+    r"\b(ms|s|k|m|mrr|arr|api|sql|gpu|cpu|db|llm|model|models|latency|deploy|"
+    r"ship|shipped|code|bug|test|tests|users|customers|revenue|churn|prod|"
+    r"repo|commit|server|cache|token|tokens|benchmark|migration)\b", re.I)
+
+
+def is_abstract(parent_text: str) -> bool:
+    t = parent_text or ""
+    return not (_NUMBER.search(t) or _PROPER.search(t) or _CONCRETE.search(t))
+
+
+_ADVICE = re.compile(
+    r"\b(you should|you need to|you have to|you gotta|focus on|start by|"
+    r"try to|the key is|the trick is|it'?s about|means (that |setting |"
+    r"finding |knowing )|comes down to|remember to|make sure (you|to))\b", re.I)
+
+
+def lecturing(text: str, parent_text: str) -> str:
+    """Advice-shaped reply to an abstraction. Only fires when the post gave you
+    nothing concrete, which is exactly when the model reaches for a platitude."""
+    if not is_abstract(parent_text):
+        return ""
+    if _ADVICE.search(text):
+        return "lecturing back at an abstract post"
+    return ""
+
+
 # --- combined ----------------------------------------------------------------
 def check(text: str, parent_text: str, archetype: str = "") -> str:
     """Return the first failure reason, or "" when the reply is clean."""
     for reason in (simile_tell(text),
                    punching_down(text, parent_text),
+                   invented_numbers(text, parent_text),
+                   lecturing(text, parent_text),
                    generic_reply(text, parent_text),
                    question_violation(text, archetype) if archetype else ""):
         if reason:

@@ -216,13 +216,19 @@ def _offline_draft(user: str) -> str:
     src = _extract_source(user)
     angle = _extract_angle(user)
     topic = _keyword(src)
-    if angle.startswith("short"):
-        return f"{topic} is the whole game here. rest is detail."
+    # Offline drafts have to obey the same rules as real ones, or the guards
+    # reject every stub and the fixture pipeline queues nothing. In particular:
+    # no invented numbers, and a question only for the question archetype.
+    if "question" in angle:
+        return (f"the {topic} part is the bit I keep getting wrong. "
+                f"what finally made it hold for you?")
+    if "wit" in angle or angle.startswith("short"):
+        return f"{topic} is the whole game here. the rest is detail."
     if "disagree" in angle or "complic" in angle or "push" in angle:
-        return (f"not sure that holds. {topic} breaks down once you hit real "
-                f"traffic. measured it last week and the numbers went the other way.")
-    return (f"the {topic} part matters more than it looks. constrained decoding "
-            f"plus a tight schema got mine stable at about 40ms p50.")
+        return (f"not sure that holds. {topic} breaks down once real traffic "
+                f"arrives and the retries start stacking up.")
+    return (f"the {topic} part matters more than it looks. a tight schema and "
+            f"constrained decoding is what made it stable for us.")
 
 
 def _keyword(text: str) -> str:

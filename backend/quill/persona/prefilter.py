@@ -125,9 +125,11 @@ def prefilter(candidate: str, parent_text: str, voice_card: dict,
         if nv and nv in cl and len(nv) > 3:
             return False, f"voice-card never: '{never}'"
 
-    # "not X, but Y" construction
+    # "not X, but Y" and its variants ("isn't just X, it's Y", "not only")
     if re.search(r"\bnot\b.{1,40}\bbut\b", cl):
         return False, "'not X, but Y' construction"
+    if re.search(r"\b(is|are|was|were)n'?t (just|only)\b|\bnot only\b", cl):
+        return False, "'not just X, it's Y' construction"
 
     # rhetorical-question opener
     if cl.split(".")[0].strip().endswith("?") and cl.startswith(("isn't", "aren't",
