@@ -28,7 +28,9 @@ nothing costs an impression. A reply that earns a mute costs 150 good replies.
 | O-10 | Aphorisms turn into generic life advice instead of a reply | eval run 1, aphorism category | open, worst category |
 | O-11 | Corpus leakage: the operator's own past post reused as a fresh claim | "shipped" -> "p50 dropped from 90ms to 38ms" | guarded |
 | O-12 | Question rate lands at 36%, target 30% | eval run 1 | partly open, see below |
-| O-13 | Long replies drift over 180 chars in the selfdep and product categories | eval run 1 in-band 62.5% / 80% | open |
+| O-13 | Long replies drift over 180 chars in the product and meta categories | eval run 2, mean 147 ch there | open |
+| O-14 | **Fabricated personal anecdotes**: "in our last sprint we avoided refactoring the API layer" | eval run 2, opener "in our" x5 | open, top risk |
+| O-15 | Question rate still 38%, target 30% | eval run 2 | open |
 
 ---
 
@@ -62,6 +64,48 @@ choosing projects that need them"*) could sit under a thousand different posts.
 `guards.generic_reply` requires the reply to share at least one non-stopword
 with the post, unless it carries its own concrete detail (a number, or an
 unusual long noun). Crude, but it catches the exact failure and is cheap.
+
+### 2026-09-02, eval run 2 (all seven guards)
+
+Full report in `PERSONA_EVAL.md`.
+
+| | A baseline | B guarded |
+|---|---|---|
+| simile in the final reply | 11 | **0** |
+| generic | 1 | **0** |
+| punching down | 1 | **0** |
+| asks a question | 50% | 38% |
+| gave up (silence) | 0% | 3% |
+| drafts per reply | 1.05 | 1.28 |
+
+Rejections are now led by **invented number (10 per 100 drafts)**, ahead of
+similes (6). The model fabricates a metric roughly once every ten drafts, which
+says the guard is load-bearing, not decorative.
+
+**O-10 is fixed and it is the biggest single quality jump so far.** The
+grounding directive turned aphorism replies from advice into concrete cases:
+
+> **@wisdom_acct**: "the work you avoid is usually the work that matters"
+> before: *"right thing means setting goals that measure success accurately."*
+> after: *"in our last sprint, we avoided refactoring the messy API layer.
+> ended up with twice the bugs and half the feature coverage."*
+
+**O-14, and it is the new top risk.** That same example is a fabricated
+personal anecdote. There was no sprint and no API layer. The grounding fix
+traded a vague lecture for an invented war story, and "in our" is now the most
+repeated opener in the corpus (5 of 97). Qualitatively this is the same failure
+as `invented_numbers`, just without digits to catch it on. Options, none
+implemented yet:
+
+1. Steer grounding toward the general case ("teams that skip this end up...")
+   rather than a first-person story.
+2. Only allow a first-person anecdote when the retrieval few-shot actually
+   contains a matching one from the operator's real corpus.
+3. Reject first-person past-tense claims outright and accept blander replies.
+
+Option 2 is the honest one and the most work. Until it exists, **auto-send to
+strangers should stay off**: an invented anecdote is a claim in the operator's
+name.
 
 ### 2026-09-02, eval run 1 (100 tweets, A/B)
 
