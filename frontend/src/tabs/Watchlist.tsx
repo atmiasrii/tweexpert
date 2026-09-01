@@ -133,6 +133,8 @@ export function Watchlist() {
           note="Quill reads only the accounts you list here. Add a few people whose posts you would actually reply to."
         />
       ) : (
+        <Card>
+        <SectionTitle hint={`${list.length} watched`}>Accounts</SectionTitle>
         <Table head={["Account", "Tier", "Mode", "Shadow progress", "Drafts", ""]}>
           {list.map((a) => (
             <Tr key={a.id}>
@@ -166,13 +168,16 @@ export function Watchlist() {
             </Tr>
           ))}
         </Table>
+        </Card>
       )}
 
-      <p className="text-[12.5px] text-muted max-w-prose">
-        Every account starts in <b className="text-ink-2">shadow</b>: Quill drafts, never sends, and you
-        grade the drafts in the shadow log. Auto unlocks only once that period is served — the lock is
-        enforced in the backend, not just here.
-      </p>
+      <Card>
+        <p className="text-[12.5px] text-muted max-w-prose">
+          Every account starts in <b className="text-ink-2">shadow</b>: Quill drafts, never sends, and you
+          grade the drafts in the shadow log. Auto unlocks only once that period is served. The lock is
+          enforced in the backend, not just here.
+        </p>
+      </Card>
     </div>
   );
 }

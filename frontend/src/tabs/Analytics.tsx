@@ -138,7 +138,7 @@ function PostTable({ q }: { q: any }) {
   );
 
   return (
-    <section>
+    <Card>
       <SectionTitle hint="sampled after publication">Post performance</SectionTitle>
       <Table head={["Post", "Kind", <SortBtn key="l" k="length" label="Len" />,
         <SortBtn key="h" k="likes" label="Likes" />, <SortBtn key="v" k="views" label="Views" />]}>
@@ -155,6 +155,6 @@ function PostTable({ q }: { q: any }) {
           </Tr>
         ))}
       </Table>
-    </section>
+    </Card>
   );
 }

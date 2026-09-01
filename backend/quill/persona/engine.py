@@ -65,11 +65,31 @@ def _system_prompt(voice_prompt: str, fewshot: list[str], skills: dict) -> str:
 
 
 def _draft_one(llm: LLM, system: str, source: str, angle_name: str,
-               angle_desc: str, reasons: str = "") -> str:
+               angle_desc: str, reasons: str = "", directives: bool = True) -> str:
+    """`directives` off reproduces the pre-guards prompt; the eval harness uses
+    it as the A arm. Live code always leaves it on."""
+    from .guards import is_self_deprecating
+    # When the author is already laughing at themselves, correcting them reads
+    # as smug and earns a mute (-74) instead of a reply-back (+75).
+    warmth = ("This author is being self-deprecating about their own mistake. "
+              "Do NOT correct or lecture them. Be warm: side with them, share "
+              "the equivalent thing that got you, or make the joke bigger. "
+              "Never mention their experience level.\n"
+              if directives and is_self_deprecating(source) else "")
+    steer = ""
+    if directives:
+        steer = (warmth
+                 + ("Ask exactly one question the author can answer.\n"
+                    if angle_name == "question"
+                    else "Do NOT ask a question. State your point.\n")
+                 + "Use at least one specific word or detail from the post "
+                   "itself. Never compare the topic to something else "
+                   "('X is like Y'); say the thing directly.\n")
     user = (
         "Write ONE reply to the post below. React to its actual content.\n"
         f"<source_post>\n{source}\n</source_post>\n"
-        f"Approach for this reply — {angle_name}: {angle_desc}\n"
+        f"Approach for this reply, {angle_name}: {angle_desc}\n"
+        + steer
         + (f"Your previous attempt was rejected because: {reasons}. "
            "Do not repeat that mistake.\n" if reasons else "")
         + "Reply text only. No preamble, no quotes, no explanation."
@@ -102,6 +122,10 @@ def normalize(text: str) -> str:
                 .replace("…", "..."))
     text = _re.sub(r"\s+", " ", text).strip()
     text = _re.sub(r"\s+,", ",", text)
+    # The model occasionally glues two words together ("black marketObsolete").
+    # Only split lower->upper between two real words, so OpenAI and PyTorch and
+    # iPhone survive untouched.
+    text = _re.sub(r"(?<=[a-z]{2})([A-Z][a-z]{2,})", r" \1", text)
     if len(text) <= _MAX_CHARS:
         return text
     # trim to the last sentence end, else last word, under the cap
@@ -173,7 +197,7 @@ def pick_archetype(source_post: str, skills: dict) -> str:
     ladder (questions ~30%, receipts most, wit least) and bend with the dials."""
     import zlib
     w = {
-        "question": 25 + int(skills.get("curious", 60)) * 0.25,
+        "question": 15 + int(skills.get("curious", 60)) * 0.25,
         "receipt": 30 + int(skills.get("insightful", 85)) * 0.1,
         "pushback": 10 + int(skills.get("contrarian", 55)) * 0.2,
         "dry wit": 5 + (int(skills.get("witty", 55)) + int(skills.get("funny", 40))) * 0.1,
@@ -199,15 +223,17 @@ def quick_reply(session: Session, source_post: str, archetype: str | None = None
     arche = dict(ARCHETYPES)
     first = archetype if archetype in arche else pick_archetype(source_post, skills)
     order = [first] + [n for n, _ in ARCHETYPES[:3] if n != first]
+    last_why = ""
+    text = ""
     for name in order:
         desc = arche[name]
-        text = _draft_one(llm, system, source_post, name, desc,
-                          reasons="" if name == first
-                          else "reply must be 80-180 characters, in English, no repetition, no dashes")
-        ok, _ = prefilter(text, source_post, voice)
+        text = _draft_one(llm, system, source_post, name, desc, reasons=last_why)
+        ok, why = prefilter(text, source_post, voice, archetype=name)
         if ok and _looks_english(text) and not is_degenerate(text):
             return text
-    return text if (_looks_english(text) and not is_degenerate(text)) else ""
+        last_why = why
+    # Nothing clean. Silence beats a bad reply (P-06).
+    return ""
 
 
 def _round(session, llm, system, vprompt, source, voice, auto, reasons=""):
@@ -215,7 +241,7 @@ def _round(session, llm, system, vprompt, source, voice, auto, reasons=""):
     for name, desc in ANGLES:
         text = _draft_one(llm, system, source, name, desc, reasons)
         c = Candidate(angle=name, text=text)
-        ok, why = prefilter(text, source, voice)
+        ok, why = prefilter(text, source, voice, archetype=name)
         c.prefilter_ok, c.prefilter_reason = ok, why
         if not ok:
             out.append(c)

@@ -98,21 +98,24 @@ def regenerate(draft_id: int, session: Session = Depends(get_session),
 
 @router.post("/queue/clear-stale")
 def clear_stale(session: Session = Depends(get_session), _=Depends(require_auth)):
-    """Dismiss queued drafts that were written before the current voice rules —
-    em dashes, non-English drift, over-length or repetitive output. Keeps the
-    good ones so the operator doesn't lose real work."""
-    import re
+    """Dismiss queued drafts that would not pass today's voice rules: em dashes,
+    non-English drift, over-length, repetition, and everything the current
+    prefilter and guards reject (similes, praise-only, punching down, generic).
+    Keeps the good ones so the operator doesn't lose real work."""
+    from ...db.models import Post
     from ...persona.engine import _looks_english, is_degenerate
+    from ...persona.prefilter import prefilter
+    from ...persona.voicecard import load_voice_card
 
-    dash = re.compile(r"[—–]")
+    voice = load_voice_card(session)
     removed, kept = [], 0
     for d in session.exec(select(Draft).where(Draft.status == "queued")).all():
         t = d.final_text or ""
-        why = ("em dash" if dash.search(t)
-               else "not English" if not _looks_english(t)
-               else "too long" if len(t) > 240
+        parent = session.get(Post, d.parent_post_id) if d.parent_post_id else None
+        ok, reason = prefilter(t, parent.text if parent else "", voice)
+        why = ("not English" if not _looks_english(t)
                else "repetitive" if is_degenerate(t)
-               else "")
+               else "" if ok else reason)
         if why:
             d.status = "dismissed"
             session.add(d)

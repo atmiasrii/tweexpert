@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useToast } from "../components/Toast";
-import { Badge, Button, EmptyState, SectionTitle, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, EmptyState, SectionTitle, Skeleton, cx } from "../components/ui";
 import { IconArrowRight, IconCheck, IconSpark, IconX } from "../components/Icons";
 import { TweetCard } from "../components/TweetCard";
 
@@ -22,11 +22,12 @@ function Column({ title, hint, children }: { title: string; hint: string; childr
   return (
     // Fixed, equal height across all three so an empty column reads as "nothing
     // here yet" rather than a broken box next to two tall ones.
-    <section className="rounded-lg border border-rule bg-surface-2/40 p-2.5 flex flex-col
-      h-[calc(100vh-170px)]">
-      <div className="px-1.5 pb-1"><SectionTitle hint={hint}>{title}</SectionTitle></div>
-      <div className="space-y-2.5 overflow-y-auto pr-0.5 flex-1">{children}</div>
-    </section>
+    <Card pad={false} className="flex flex-col h-[calc(100vh-170px)] overflow-hidden">
+      <div className="px-3 pt-3 pb-0 shrink-0">
+        <SectionTitle hint={hint}>{title}</SectionTitle>
+      </div>
+      <div className="space-y-2.5 overflow-y-auto px-3 pb-3 flex-1">{children}</div>
+    </Card>
   );
 }
 
@@ -54,7 +55,7 @@ function Pending() {
   return (
     <>
       {items.map((d) => (
-        <div key={d.id} className="rounded-md border border-rule bg-surface p-2.5 space-y-2">
+        <div key={d.id} className="rounded-md border border-rule bg-surface-2/50 p-2.5 space-y-2">
           {d.parent && (
             <TweetCard handle={d.parent.author} name={d.parent.author} text={d.parent.text} when="" dense
               className="!border-0 !p-0" />
@@ -90,7 +91,7 @@ function Sent() {
   return (
     <>
       {rows.map((a) => (
-        <div key={a.id} className="rounded-md border border-rule bg-surface p-2.5">
+        <div key={a.id} className="rounded-md border border-rule bg-surface-2/50 p-2.5">
           <div className="flex items-center gap-1.5 text-[12px]">
             <Badge tone={a.issuer === "policy" ? "accent" : "go"}>{a.issuer === "policy" ? "auto" : "you"}</Badge>
             {a.target && <span className="text-muted">→ @{a.target}</span>}
@@ -119,7 +120,7 @@ function ForYouAuto() {
   const c = cfg.data ?? {};
   const on = !!c.foryou_enabled;
   return (
-    <div className="rounded-md border border-rule bg-surface p-2.5 space-y-2">
+    <div className="rounded-md border border-rule bg-surface-2/50 p-2.5 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-semibold">Auto-reply to For You</span>
         <button
@@ -178,7 +179,7 @@ function ForYou() {
       {disc.isPending ? <Skeleton className="h-24" /> :
         items.length === 0 ? <EmptyState title="Nothing surfaced" note="Scan your feed, or add saved searches in Discover." /> :
         items.map((d) => (
-          <div key={d.id} className="rounded-md border border-rule bg-surface p-2.5 space-y-2">
+          <div key={d.id} className="rounded-md border border-rule bg-surface-2/50 p-2.5 space-y-2">
             <TweetCard handle={d.author} name={d.author} text={d.text} when="" dense className="!border-0 !p-0" />
             <Button size="sm" variant="ghost" icon={<IconArrowRight size={13} />}
               loading={promote.isPending} onClick={() => promote.mutate(d.id)}>Draft a reply</Button>

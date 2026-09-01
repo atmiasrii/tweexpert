@@ -117,6 +117,11 @@ def _process_post(session: Session, post: ParsedPost,
         return Outcome("discarded", "already replied in thread")
 
     # --- relevance -----------------------------------------------------
+    # Hard gates first: a dead or saturated thread should never cost a model call.
+    skip = relevance_mod.skip_reason(post)
+    if skip:
+        return Outcome("discarded", skip)
+
     rel = relevance_mod.score(session, post, account)
     threshold = get_setting(session, "relevance_threshold_auto", RELEVANCE_THRESHOLD_AUTO) \
         if auto else get_setting(session, "relevance_threshold", RELEVANCE_THRESHOLD)

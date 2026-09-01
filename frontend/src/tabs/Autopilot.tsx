@@ -294,9 +294,12 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
               </div>
             )}
 
-            {/* Candidates: three angles, picked by number key or tap. */}
-            {(cur.candidates?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
+            {/* Candidates: one chip per angle, picked by number key or tap. A
+                single candidate means the fast path wrote it, so there is
+                nothing to choose between and the row is just noise. */}
+            {(cur.candidates?.length ?? 0) > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                <span className="text-[12px] text-faint mr-0.5">other takes</span>
                 {cur.candidates.map((c: any, i: number) => {
                   const on = i === pick;
                   const blocked = c.prefilter_ok === false;

@@ -43,7 +43,7 @@ function Inbox() {
   const items: any[] = disc.data ?? [];
 
   return (
-    <section>
+    <Card>
       <SectionTitle hint="found outside the watchlist">Discovery inbox</SectionTitle>
       {items.length === 0 ? (
         <EmptyState
@@ -57,9 +57,11 @@ function Inbox() {
             <Card key={d.id} className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold">@{d.author}</span>
-                <Badge tone={d.relevance >= 78 ? "accent" : "neutral"} className="ml-auto">
-                  rel {Math.round(d.relevance)}
-                </Badge>
+                {d.relevance > 0 && (
+                  <Badge tone={d.relevance >= 78 ? "accent" : "neutral"} className="ml-auto">
+                    {Math.round(d.relevance)}% match
+                  </Badge>
+                )}
               </div>
               <div className="tweet">{d.text}</div>
               <Button size="sm" variant="ghost" className="-ml-2" icon={<IconArrowRight size={14} />}
@@ -70,7 +72,7 @@ function Inbox() {
           ))}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 

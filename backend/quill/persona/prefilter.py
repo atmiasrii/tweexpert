@@ -60,8 +60,13 @@ def _repetitive(c: str) -> bool:
     return False
 
 
-def prefilter(candidate: str, parent_text: str, voice_card: dict) -> tuple[bool, str]:
-    """Return (ok, reason). ok=False means kill this candidate."""
+def prefilter(candidate: str, parent_text: str, voice_card: dict,
+              archetype: str = "", strict: bool = True) -> tuple[bool, str]:
+    """Return (ok, reason). ok=False means kill this candidate.
+
+    `strict` runs the second-generation guards (simile crutch, question rate,
+    punching down, generic reply). It is on everywhere; the flag exists so the
+    eval harness can A/B the guards against the same drafts."""
     c = candidate.strip()
     cl = _norm(c)
     if not cl:
@@ -133,5 +138,11 @@ def prefilter(candidate: str, parent_text: str, voice_card: dict) -> tuple[bool,
     opener_clause = re.split(r"[.!?]", c)[0]
     if parent_text and ngram_overlap(opener_clause, parent_text, n=3) > 0.5:
         return False, "opener paraphrases parent"
+
+    if strict:
+        from .guards import check
+        why = check(c, parent_text, archetype)
+        if why:
+            return False, why
 
     return True, "ok"

@@ -21,6 +21,25 @@ export function Schedule() {
   const [hour, setHour] = useState(9);
   const [minute, setMinute] = useState(0);
 
+  // Tue/Wed/Thu, morning and lunch. The scheduler data behind this is for a
+  // US tech audience, so it is a starting prior, not truth: re-check it against
+  // your own Analytics after a few weeks.
+  const RECOMMENDED = [1, 2, 3].flatMap((d) => [
+    { weekday: d, hour: 9, minute: 0 },
+    { weekday: d, hour: 13, minute: 0 },
+  ]);
+
+  const addRecommended = useMutation({
+    mutationFn: async () => {
+      for (const s of RECOMMENDED) await api.post("/api/schedule/slots", { ...s, category: "" });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["schedule"] });
+      toast({ tone: "success", title: "Added 6 slots", detail: "Tue to Thu, 9am and 1pm." });
+    },
+    onError: (e) => reportError(e, "Could not add those slots"),
+  });
+
   const addSlot = useMutation({
     mutationFn: () => api.post("/api/schedule/slots", { weekday: wd, hour, minute, category: "" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["schedule"] }); toast({ tone: "success", title: "Slot added" }); },
@@ -50,7 +69,7 @@ export function Schedule() {
 
   return (
     <div className="space-y-5 max-w-[900px]">
-      <section>
+      <Card>
         <SectionTitle hint="posting times, in your timezone">Weekly slots</SectionTitle>
 
         {s.isPending ? (
@@ -105,9 +124,22 @@ export function Schedule() {
             Sends drift a few minutes off the slot on purpose.
           </span>
         </form>
-      </section>
 
-      <section>
+        {slots.length === 0 && !s.isPending && (
+          <div className="mt-3 pt-3 border-t border-rule flex flex-wrap items-center gap-2">
+            <Button variant="primary" loading={addRecommended.isPending}
+              onClick={() => addRecommended.mutate()}>
+              Use recommended times
+            </Button>
+            <span className="text-[12px] text-faint">
+              Tuesday to Thursday, 9am and 1pm. Best window for a tech audience.
+              Check your own Analytics after a few weeks and adjust.
+            </span>
+          </div>
+        )}
+      </Card>
+
+      <Card>
         <SectionTitle hint="evergreen posts are pulled in when the queue runs dry">
           Queued posts
         </SectionTitle>
@@ -124,7 +156,7 @@ export function Schedule() {
           <ul className="space-y-2">
             {queued.map((q) => (
               <li key={q.id}>
-                <Card className="flex items-start gap-3 group">
+                <div className="flex items-start gap-3 group rounded-sm border border-rule bg-surface-2/40 p-3">
                   <div className="tweet flex-1 min-w-0">{q.text}</div>
                   <div className="flex items-center gap-2 shrink-0">
                     {q.evergreen ? <Badge tone="go">evergreen</Badge>
@@ -139,12 +171,12 @@ export function Schedule() {
                       <IconX size={14} />
                     </button>
                   </div>
-                </Card>
+                </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

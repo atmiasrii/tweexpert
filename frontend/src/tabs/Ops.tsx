@@ -112,7 +112,7 @@ function AuditLog() {
   if (actions.isError) return <ErrorState error={actions.error} onRetry={actions.refetch} />;
 
   return (
-    <section>
+    <Card>
       <SectionTitle
         hint="every write, whoever issued it"
         action={
@@ -168,7 +168,7 @@ function AuditLog() {
           </Table>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -207,7 +207,7 @@ function LiveLogs() {
   }, [logs, paused]);
 
   return (
-    <section>
+    <Card>
       <SectionTitle
         hint={LINK_STATE[link] ?? "unknown"}
         action={
@@ -247,7 +247,7 @@ function LiveLogs() {
           );
         })}
       </div>
-    </section>
+    </Card>
   );
 }
 

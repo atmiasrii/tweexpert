@@ -133,7 +133,7 @@ export function Compose() {
         )}
 
         {cands.length > 0 && (
-          <section>
+          <Card>
             <SectionTitle hint="pick one to load it into the editor">Candidates</SectionTitle>
             <div className="space-y-2">
               {cands.map((c, i) => (
@@ -155,7 +155,7 @@ export function Compose() {
                 </Card>
               ))}
             </div>
-          </section>
+          </Card>
         )}
 
         <IdeaInbox />
