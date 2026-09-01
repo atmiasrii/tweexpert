@@ -69,6 +69,11 @@ def draft_for_post(session: Session, parsed, mode: str = "auto",
     br = block_reason(session, parsed, auto=(mode == "auto"))
     if br:
         return {"ok": False, "reason": br}
+    # "gm" and friends: nothing to add, so skip before spending a model call.
+    from ..persona.guards import too_thin
+    thin = too_thin(parsed.text)
+    if thin:
+        return {"ok": False, "reason": thin}
 
     # reuse an existing fresh draft for this post if we already made one
     post_row = pipeline.upsert_post(session, parsed)
