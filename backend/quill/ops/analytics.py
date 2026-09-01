@@ -99,6 +99,44 @@ def reply_outcomes(session: Session) -> list[dict]:
     return [{"angle": a, **v} for a, v in by_angle.items()] or rows
 
 
+def reply_scoreboard(session: Session) -> dict:
+    """The metric the whole reply strategy is aimed at.
+
+    A conversation continuing under your reply is the event the ranker pays
+    75.0 for, against 0.5 for a like. So "how often does my reply get answered"
+    is the number to steer on, and likes are close to noise.
+
+    Caveat kept in the payload: X does not expose *who* replied, so a reply
+    with `replies > 0` counted here may have been answered by a bystander
+    rather than the original author. It is an upper bound on reply-backs, and
+    a real one to watch over time.
+    """
+    own_replies = session.exec(
+        select(Post).where(Post.is_own == True, Post.kind == "reply")).all()  # noqa: E712
+    measured, answered, likes = 0, 0, 0
+    for p in own_replies:
+        latest = session.exec(
+            select(MetricSample).where(MetricSample.x_post_id == p.x_post_id)
+            .order_by(MetricSample.at.desc())).first()
+        if not latest:
+            continue
+        measured += 1
+        likes += latest.likes
+        if latest.replies > 0:
+            answered += 1
+    return {
+        "replies_sent": len(own_replies),
+        "measured": measured,
+        "answered": answered,
+        "answer_rate": round(100 * answered / measured, 1) if measured else None,
+        "likes_per_reply": round(likes / measured, 2) if measured else None,
+        "needs_more": max(0, 10 - measured),
+        "note": "A reply counts as answered when anyone replied under it. "
+                "X does not say whether it was the original author, so treat "
+                "this as the ceiling on your true reply-back rate.",
+    }
+
+
 def follower_series(session: Session) -> list[dict]:
     from ..db.settings_store import get_setting
     return get_setting(session, "follower_series", [])

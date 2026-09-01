@@ -24,6 +24,8 @@ nothing costs an impression. A reply that earns a mute costs 150 good replies.
 | O-6 | No timing signal: replies are drafted without knowing post age | research: reply inside 5-15 min, host post half-life ~80 min | open |
 | O-7 | No account tiering: every watched account treated the same | research: target 5-20x own follower count | open |
 | O-8 | Retrieval few-shot is thin, so voice leans on the static examples | corpus size on Persona tab | open |
+| O-9 | No reply-back attribution: X does not expose who replied | scoreboard counts any replier | open, upper bound only |
+| O-10 | Same reply shape repeats across a category (aphorisms all become advice) | eval report, by-situation table | open |
 
 ---
 
@@ -57,6 +59,22 @@ choosing projects that need them"*) could sit under a thousand different posts.
 `guards.generic_reply` requires the reply to share at least one non-stopword
 with the post, unless it carries its own concrete detail (a number, or an
 unusual long noun). Crude, but it catches the exact failure and is cheap.
+
+### 2026-09-02, observations from the live queue
+
+Walking the real queue in the UI, not the corpus, turned up three things:
+
+- **The simile rate was worse than the showcase suggested: 6 of 17 queued
+  drafts (35%) used one.** "like shipping software on crack", "like aiming for
+  the applause of a half-empty room", "templates in a trench coat", "sounds
+  like overkill", "feels like the wildcard". Running the new guards over the
+  queue removed 7 drafts (5 similes, 1 @-mention) and kept 10.
+- **Words getting glued together**: "made the black marketObsolete". Fixed in
+  `normalize` with a lower-to-upper split that leaves OpenAI, PyTorch and
+  iPhone alone.
+- **The Discovery inbox was showing every post twice.** Each saved-search run
+  re-inserted the same posts as new `DiscoveryItem` rows. Fixed at insert time
+  and de-duplicated in the listing for rows already in the table.
 
 ### 2026-09-02, first pass (`e6510f4`)
 

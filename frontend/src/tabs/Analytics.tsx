@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { BarChart, LineChart, Point, Stat } from "../components/Charts";
 import {
-  Badge, Card, EmptyState, ErrorState, SectionTitle, Skeleton, Table, Td, Tr, cx,
+  Badge, Card, EmptyState, ErrorState, Help, SectionTitle, Skeleton, Table, Td, Tr, cx,
 } from "../components/ui";
 import { IconAnalytics } from "../components/Icons";
 
@@ -16,6 +16,7 @@ export function Analytics() {
   const replies = useQuery({ queryKey: ["an-replies"], queryFn: () => api.get("/api/analytics/replies") });
   const followers = useQuery({ queryKey: ["an-followers"], queryFn: () => api.get("/api/analytics/followers") });
   const rate = useQuery({ queryKey: ["an-rate"], queryFn: () => api.get("/api/analytics/approval-rate") });
+  const board = useQuery({ queryKey: ["an-board"], queryFn: () => api.get("/api/analytics/scoreboard") });
 
   const fSeries: any[] = followers.data?.series ?? [];
   const rSeries: any[] = rate.data?.series ?? [];
@@ -45,6 +46,8 @@ export function Analytics() {
 
   return (
     <div className="space-y-4 max-w-[980px]">
+      <Scoreboard q={board} />
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <SectionTitle hint="daily sample">Followers</SectionTitle>
@@ -59,7 +62,10 @@ export function Analytics() {
               <Stat label="latest" value={String(latest ?? "—")} delta={delta}
                 hint={delta != null ? "change since the previous sample" : undefined} />
               <div className="mt-3">
-                <LineChart data={followerPoints} valueLabel="followers" />
+                {/* One dot is not a trend, it just looks like a broken chart. */}
+                {followerPoints.length < 2
+                  ? <NeedsMore have={followerPoints.length} want={2} unit="daily sample" />
+                  : <LineChart data={followerPoints} valueLabel="followers" />}
               </div>
             </>
           )}
@@ -81,7 +87,9 @@ export function Analytics() {
                 hint={latestRate?.n != null ? `${latestRate.n} decision${latestRate.n === 1 ? "" : "s"}` : undefined}
               />
               <div className="mt-3">
-                <LineChart data={ratePoints} valueLabel="approval rate" format={(v) => `${v}%`} />
+                {ratePoints.length < 2
+                  ? <NeedsMore have={ratePoints.length} want={2} unit="week of decisions" />
+                  : <LineChart data={ratePoints} valueLabel="approval rate" format={(v) => `${v}%`} />}
               </div>
             </>
           )}
@@ -156,5 +164,75 @@ function PostTable({ q }: { q: any }) {
         ))}
       </Table>
     </Card>
+  );
+}
+
+/* ── the number that matters ──────────────────────────────────
+   Everything else on this page is context. A reply that gets answered is
+   worth 150 likes to X's ranker, so this is the one to steer on. */
+function Scoreboard({ q }: { q: any }) {
+  const d = q.data ?? {};
+  const enough = (d.measured ?? 0) >= 3;
+  return (
+    <Card>
+      <SectionTitle hint="the number the reply strategy is aimed at">
+        Do your replies get answered?
+      </SectionTitle>
+      {q.isPending ? (
+        <Skeleton className="h-16" />
+      ) : q.isError ? (
+        <ErrorState error={q.error} onRetry={q.refetch} />
+      ) : !enough ? (
+        <div className="text-[13px] text-muted">
+          {d.replies_sent ? (
+            <>Sent <b className="text-ink num">{d.replies_sent}</b> replies,
+              {" "}<b className="text-ink num">{d.measured ?? 0}</b> measured so far.
+              Needs about <b className="text-ink num">{d.needs_more ?? 10}</b> more
+              before the rate means anything.</>
+          ) : (
+            <>Nothing sent yet. Once Quill posts replies, this shows how often
+              someone answered them.</>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <div className="num text-[32px] leading-none font-semibold text-accent">
+              {d.answer_rate}%
+            </div>
+            <div className="text-[12.5px] text-muted mt-1">
+              got a reply back
+              <Help text={d.note ?? ""} />
+            </div>
+          </div>
+          <div>
+            <div className="num text-[32px] leading-none font-semibold text-ink">
+              {d.answered}<span className="text-faint text-[20px]">/{d.measured}</span>
+            </div>
+            <div className="text-[12.5px] text-muted mt-1">replies measured</div>
+          </div>
+          <div>
+            <div className="num text-[32px] leading-none font-semibold text-ink">
+              {d.likes_per_reply}
+            </div>
+            <div className="text-[12.5px] text-muted mt-1">
+              likes per reply
+              <Help text="Likes are worth almost nothing to the algorithm. Watch the answer rate instead." />
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** A chart needs at least two points to be a line. Until then, say so. */
+function NeedsMore({ have, want, unit }: { have: number; want: number; unit: string }) {
+  const need = Math.max(1, want - have);
+  return (
+    <div className="rounded-sm border border-dashed border-rule-strong bg-surface-2/40
+      px-4 py-6 text-center text-[12.5px] text-muted">
+      Needs {need} more {unit}{need === 1 ? "" : "s"} before there is a trend to draw.
+    </div>
   );
 }

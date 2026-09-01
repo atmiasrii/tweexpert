@@ -23,6 +23,12 @@ def replies(session: Session = Depends(get_session), _=Depends(require_auth)):
     return analytics.reply_outcomes(session)
 
 
+@router.get("/scoreboard")
+def scoreboard(session: Session = Depends(get_session), _=Depends(require_auth)):
+    """How often a reply gets answered: the number the strategy is aimed at."""
+    return analytics.reply_scoreboard(session)
+
+
 @router.get("/followers")
 def followers(session: Session = Depends(get_session), _=Depends(require_auth)):
     return {"series": analytics.follower_series(session)}

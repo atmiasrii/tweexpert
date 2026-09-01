@@ -28,6 +28,12 @@ def run_saved_searches(session: Session) -> int:
         governor.record_read(session, 1)
         for p in posts:
             post = pipeline.upsert_post(session, p)
+            # A saved search returns the same posts every run, so without this
+            # the inbox fills with duplicates of whatever is still ranking.
+            seen = session.exec(select(DiscoveryItem).where(
+                DiscoveryItem.post_id == post.id)).first()
+            if seen:
+                continue
             rel = relevance_mod.score(session, p, None)
             session.add(DiscoveryItem(post_id=post.id, source="search",
                                       query=s.query, relevance=rel))
@@ -69,7 +75,12 @@ def list_discovery(session: Session) -> list[dict]:
     items = session.exec(select(DiscoveryItem).where(
         DiscoveryItem.status == "new").order_by(DiscoveryItem.relevance.desc())).all()
     out = []
+    seen: set[int] = set()
     for it in items:
+        # Duplicates already in the table from before the insert-time guard.
+        if it.post_id in seen:
+            continue
+        seen.add(it.post_id)
         post = session.get(Post, it.post_id)
         out.append({"id": it.id, "source": it.source, "query": it.query,
                     "relevance": it.relevance,
