@@ -20,10 +20,12 @@ export function Deck() {
 
 function Column({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-md border border-rule bg-surface-2/40 p-2.5 flex flex-col
-      max-h-[calc(100vh-160px)]">
-      <div className="px-1.5 pb-2"><SectionTitle hint={hint}>{title}</SectionTitle></div>
-      <div className="space-y-2.5 overflow-y-auto pr-0.5">{children}</div>
+    // Fixed, equal height across all three so an empty column reads as "nothing
+    // here yet" rather than a broken box next to two tall ones.
+    <section className="rounded-lg border border-rule bg-surface-2/40 p-2.5 flex flex-col
+      h-[calc(100vh-170px)]">
+      <div className="px-1.5 pb-1"><SectionTitle hint={hint}>{title}</SectionTitle></div>
+      <div className="space-y-2.5 overflow-y-auto pr-0.5 flex-1">{children}</div>
     </section>
   );
 }
@@ -58,7 +60,9 @@ function Pending() {
               className="!border-0 !p-0" />
           )}
           <div className="rounded-sm bg-[color:var(--accent-soft)]/40 border border-[color:var(--accent-soft)] p-2">
-            <div className="text-[11px] text-muted mb-0.5">your reply · rel {Math.round(d.relevance)}</div>
+            <div className="text-[11px] text-muted mb-0.5">
+              your reply{d.relevance > 0 ? ` · ${Math.round(d.relevance)}% match` : ""}
+            </div>
             <div className="tweet !text-[14px]">{d.final_text}</div>
           </div>
           <div className="flex gap-1.5">

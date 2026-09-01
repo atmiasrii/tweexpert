@@ -207,7 +207,12 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
   const edited = cand ? text.trim() !== String(cand.text ?? "").trim() : false;
 
   return (
-    <div className="max-w-[720px]">
+    <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)] items-start">
+      {/* The whole queue, always visible: you can see how much is left and jump
+          straight to anything, instead of paging one card at a time. */}
+      <QueueList items={items} idx={idx} onPick={setIdx} />
+
+      <div className="max-w-[720px]">
       {/* Position + keys. The legend is muted so it never competes with the tweet. */}
       <div className="flex items-center gap-3 mb-2.5">
         <span className="num text-[12.5px] text-muted shrink-0">
@@ -231,10 +236,14 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
               context. The text is still untrusted data and nothing else (X-05):
               it is rendered, never interpreted. */}
           <div className="border-b border-rule bg-surface-2/60 relative">
-            <Badge tone={cur.relevance >= 78 ? "accent" : "neutral"}
-              className="absolute top-3 right-3.5 z-10">
-              rel {Math.round(cur.relevance)}
-            </Badge>
+            {/* Only show a score when there is one — a "rel 0" badge on every
+                fast-path draft is noise that means nothing to the reader. */}
+            {cur.relevance > 0 && (
+              <Badge tone={cur.relevance >= 78 ? "accent" : "neutral"}
+                className="absolute top-3 right-3.5 z-10">
+                {Math.round(cur.relevance)}% match
+              </Badge>
+            )}
             <TweetCard
               handle={cur.parent?.author ?? cur.account ?? "?"}
               text={cur.parent?.text ?? ""}
@@ -366,7 +375,71 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
       )}
 
       {pendingSend && <UndoBar left={pendingSend.left} onUndo={cancelSend} />}
+      </div>
     </div>
+  );
+}
+
+/** The queue as a list: author, the reply we drafted, and where you are. */
+function QueueList({ items, idx, onPick }: {
+  items: any[]; idx: number; onPick: (i: number) => void;
+}) {
+  const qc = useQueryClient();
+  const { toast, reportError } = useToast();
+  // Drafts written before the current voice rules (em dashes, language drift,
+  // over-length) are dead weight — clear them without touching the good ones.
+  const clearStale = useMutation({
+    mutationFn: () => api.post("/api/queue/clear-stale"),
+    onSuccess: (d: any) => {
+      qc.invalidateQueries({ queryKey: ["queue"] });
+      toast({
+        tone: "success",
+        title: d.removed ? `Cleared ${d.removed} old draft${d.removed === 1 ? "" : "s"}` : "Nothing to clear",
+        detail: d.removed ? `${d.kept} good one${d.kept === 1 ? "" : "s"} kept.` : "Every draft passes the current rules.",
+      });
+    },
+    onError: (e) => reportError(e, "Could not clear old drafts"),
+  });
+
+  return (
+    <Card pad={false} className="overflow-hidden hidden lg:block">
+      <div className="px-3.5 py-2.5 border-b border-rule flex items-baseline gap-2">
+        <span className="text-[13.5px] font-semibold">Queue</span>
+        <span className="text-[12.5px] text-muted">{items.length} waiting</span>
+        <button
+          onClick={() => clearStale.mutate()}
+          disabled={clearStale.isPending}
+          title="Remove drafts written before the current voice rules (em dashes, wrong language, too long)"
+          className="ml-auto text-[12px] text-muted hover:text-risk transition-colors disabled:opacity-50"
+        >
+          {clearStale.isPending ? "Clearing…" : "Clear old"}
+        </button>
+      </div>
+      <ul className="max-h-[70vh] overflow-y-auto divide-y divide-[color:var(--rule)]">
+        {items.map((it, i) => (
+          <li key={it.id}>
+            <button
+              onClick={() => onPick(i)}
+              className={cx(
+                "w-full text-left px-3.5 py-2.5 transition-colors",
+                i === idx ? "bg-[color:var(--accent-soft)]" : "hover:bg-surface-2"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className={cx("text-[13px] font-semibold truncate",
+                  i === idx ? "text-accent" : "text-ink")}>
+                  @{it.parent?.author ?? it.account ?? "?"}
+                </span>
+                {i === idx && <span className="ml-auto text-[11px] text-accent shrink-0">viewing</span>}
+              </div>
+              <div className="text-[12.5px] text-muted truncate-2 mt-0.5">
+                {it.final_text}
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 

@@ -29,11 +29,11 @@ export function SectionTitle({
   children, hint, action,
 }: { children: React.ReactNode; hint?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-2 mb-2.5">
-      <h2 className="text-[13px] font-semibold tracking-wide uppercase text-muted">
+    <div className="flex items-baseline gap-2 mb-3">
+      <h2 className="text-[14.5px] font-semibold text-ink tracking-[-0.01em]">
         {children}
       </h2>
-      {hint && <span className="text-xs text-faint">{hint}</span>}
+      {hint && <span className="text-[12.5px] text-muted">{hint}</span>}
       {action && <div className="ml-auto">{action}</div>}
     </div>
   );
@@ -173,6 +173,63 @@ export function Meter({
 }
 
 /* ── Loading / empty / error ──────────────────────────────── */
+/* ── StatCard ─────────────────────────────────────────────────
+   The at-a-glance number. One per thing that matters; big enough to read
+   from across the desk, with a plain-English label under it. */
+export function StatCard({
+  label, value, sub, tone = "neutral", onClick, icon, loading,
+}: {
+  label: string; value: React.ReactNode; sub?: React.ReactNode;
+  tone?: "neutral" | "accent" | "go" | "warn" | "risk";
+  onClick?: () => void; icon?: React.ReactNode; loading?: boolean;
+}) {
+  const toneCls: Record<string, string> = {
+    neutral: "text-ink",
+    accent: "text-accent",
+    go: "text-go",
+    warn: "text-warn",
+    risk: "text-risk",
+  };
+  const Wrap: any = onClick ? "button" : "div";
+  return (
+    <Wrap
+      onClick={onClick}
+      className={cx(
+        "bg-surface border border-rule rounded-md shadow-1 p-4 text-left w-full",
+        onClick && "hover:border-muted transition-colors cursor-pointer"
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[12.5px] text-muted">
+        {icon}<span>{label}</span>
+      </div>
+      {loading ? (
+        <div className="skeleton h-8 w-16 mt-1.5" />
+      ) : (
+        <div className={cx("num text-[28px] leading-tight font-semibold mt-0.5", toneCls[tone])}>
+          {value}
+        </div>
+      )}
+      {sub && <div className="text-[12px] text-faint mt-0.5">{sub}</div>}
+    </Wrap>
+  );
+}
+
+/* ── Help ─────────────────────────────────────────────────────
+   Quill is full of words a newcomer has no reason to know (canary, shadow,
+   governor). Every one of them gets a plain-English hover. */
+export function Help({ text }: { text: string }) {
+  return (
+    <span
+      title={text}
+      aria-label={text}
+      className="inline-grid place-items-center h-[14px] w-[14px] rounded-full border border-rule
+        text-[9px] text-muted cursor-help align-middle ml-1 select-none"
+    >
+      ?
+    </span>
+  );
+}
+
 export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={cx("skeleton", className)} />;
 }

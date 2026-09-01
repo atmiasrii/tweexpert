@@ -96,6 +96,33 @@ def regenerate(draft_id: int, session: Session = Depends(get_session),
             "reason": outcome.reason}
 
 
+@router.post("/queue/clear-stale")
+def clear_stale(session: Session = Depends(get_session), _=Depends(require_auth)):
+    """Dismiss queued drafts that were written before the current voice rules —
+    em dashes, non-English drift, over-length or repetitive output. Keeps the
+    good ones so the operator doesn't lose real work."""
+    import re
+    from ...persona.engine import _looks_english, is_degenerate
+
+    dash = re.compile(r"[—–]")
+    removed, kept = [], 0
+    for d in session.exec(select(Draft).where(Draft.status == "queued")).all():
+        t = d.final_text or ""
+        why = ("em dash" if dash.search(t)
+               else "not English" if not _looks_english(t)
+               else "too long" if len(t) > 240
+               else "repetitive" if is_degenerate(t)
+               else "")
+        if why:
+            d.status = "dismissed"
+            session.add(d)
+            removed.append({"draft_id": d.id, "reason": why})
+        else:
+            kept += 1
+    session.commit()
+    return {"removed": len(removed), "kept": kept, "detail": removed[:20]}
+
+
 @router.get("/shadow")
 def shadow_log(session: Session = Depends(get_session), _=Depends(require_auth)):
     drafts = session.exec(select(Draft).where(Draft.status == "shadow")

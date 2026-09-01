@@ -8,77 +8,77 @@
    missing token can never fall through to an unreadable value.
    ───────────────────────────────────────────────────────────── */
 :root {
-  --ground: #f6f8fa;
+  --ground: #fafafb;
   --surface: #ffffff;
-  --surface-2: #f1f4f8;
-  --surface-3: #e8edf3;
-  --ink: #0f1720;
-  --ink-2: #33414f;
-  --muted: #66758a;
-  --faint: #94a2b3;
-  --rule: #e3e8ef;
-  --rule-strong: #cfd8e3;
+  --surface-2: #f5f6f8;
+  --surface-3: #eceef2;
+  --ink: #0d1117;
+  --ink-2: #3d444d;
+  --muted: #6b7280;
+  --faint: #9aa1ab;
+  --rule: #e8eaee;
+  --rule-strong: #d5d9e0;
 
-  --accent: #0a7197;
-  --accent-hover: #075b7b;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
   --accent-ink: #ffffff;
-  --accent-soft: #e2f1f7;
+  --accent-soft: #eef2ff;
 
-  --risk: #b3311c;
-  --risk-soft: #fdecea;
-  --go: #1c7a55;
-  --go-soft: #e5f5ed;
-  --warn: #8a5c07;
-  --warn-soft: #fcf2df;
+  --risk: #dc2626;
+  --risk-soft: #fee2e2;
+  --go: #16a34a;
+  --go-soft: #dcfce7;
+  --warn: #d97706;
+  --warn-soft: #fef3c7;
 
   /* Chart marks are their own tokens: validated against the chart surface for
      lightness, chroma and contrast, which is a different job from UI accent. */
-  --chart-1: #0a7197;
-  --chart-grid: #e8edf3;
-  --chart-axis: #94a2b3;
+  --chart-1: #4f46e5;
+  --chart-grid: #eceef2;
+  --chart-axis: #9aa1ab;
 
-  --shadow-1: 0 1px 2px rgba(15, 23, 32, 0.05), 0 0 0 1px rgba(15, 23, 32, 0.03);
-  --shadow-2: 0 6px 24px -8px rgba(15, 23, 32, 0.18), 0 1px 3px rgba(15, 23, 32, 0.06);
-  --shadow-pop: 0 16px 48px -12px rgba(15, 23, 32, 0.28);
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 0 0 1px rgba(16, 24, 40, 0.04);
+  --shadow-2: 0 8px 24px -6px rgba(16, 24, 40, 0.10), 0 2px 6px rgba(16, 24, 40, 0.05);
+  --shadow-pop: 0 20px 50px -12px rgba(16, 24, 40, 0.22);
 
-  --r-sm: 6px;
-  --r: 10px;
-  --r-lg: 14px;
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
 
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --ground: #0a0e13;
-  --surface: #121821;
-  --surface-2: #19212c;
-  --surface-3: #212b38;
-  --ink: #e9eff7;
-  --ink-2: #c4cfdc;
-  --muted: #8695a8;
-  --faint: #66768a;
-  --rule: #222c39;
-  --rule-strong: #32404f;
+  --ground: #0b0d11;
+  --surface: #14171d;
+  --surface-2: #1b1f27;
+  --surface-3: #232833;
+  --ink: #e8eaed;
+  --ink-2: #c2c7d0;
+  --muted: #8b93a1;
+  --faint: #6a7280;
+  --rule: #232833;
+  --rule-strong: #333a47;
 
-  --accent: #4cc2e0;
-  --accent-hover: #71d3ed;
-  --accent-ink: #05222c;
-  --accent-soft: rgba(76, 194, 224, 0.14);
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-ink: #14171d;
+  --accent-soft: rgba(129, 140, 248, 0.15);
 
-  --risk: #f08a72;
-  --risk-soft: rgba(240, 138, 114, 0.13);
-  --go: #56c795;
-  --go-soft: rgba(86, 199, 149, 0.13);
-  --warn: #e0b063;
-  --warn-soft: rgba(224, 176, 99, 0.13);
+  --risk: #f87171;
+  --risk-soft: rgba(248, 113, 113, 0.14);
+  --go: #4ade80;
+  --go-soft: rgba(74, 222, 128, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
 
   /* Dark is chosen, not an automatic flip: its own step from the same hue. */
-  --chart-1: #2aa0c6;
-  --chart-grid: #212b38;
-  --chart-axis: #66768a;
+  --chart-1: #818cf8;
+  --chart-grid: #232833;
+  --chart-axis: #6a7280;
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --shadow-2: 0 8px 28px -10px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-2: 0 8px 28px -10px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
   --shadow-pop: 0 20px 56px -16px rgba(0, 0, 0, 0.8);
 
   color-scheme: dark;

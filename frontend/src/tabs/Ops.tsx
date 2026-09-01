@@ -6,9 +6,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useToast } from "../components/Toast";
 import {
-  Badge, Button, Card, ErrorState, SectionTitle, Skeleton, StatusDot, Table, Td, Tr, cx,
+  Badge, Button, Card, ErrorState, Help, SectionTitle, Skeleton, StatusDot, Table, Td, Tr, cx,
 } from "../components/ui";
 import { IconCamera, IconExternal, IconX } from "../components/Icons";
+import { useLaunchStatus } from "../components/LaunchPanel";
 
 export function Ops() {
   return (
@@ -42,8 +43,11 @@ function Health() {
     onError: (e) => reportError(e, "Could not open the login view"),
   });
 
+  const launch = useLaunchStatus();
+
   if (health.isError) return <ErrorState error={health.error} onRetry={health.refetch} />;
   const h = health.data;
+  const liveEngine = launch.data?.live ? launch.data.engine : h?.engine;
 
   return (
     <Card>
@@ -62,15 +66,23 @@ function Health() {
         <Skeleton className="h-10" />
       ) : (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span className="flex items-center gap-2 text-[13px]">
-            engine <Badge tone={h?.engine === "playwright" ? "accent" : "neutral"}>{h?.engine}</Badge>
+          {/* The API process always runs on fixtures; the launcher knows who is
+              really posting, so ask it rather than reporting our own engine. */}
+          <span className="flex items-center gap-1.5 text-[13px]">
+            Posting via
+            <Badge tone={liveEngine === "playwright" ? "accent" : "neutral"}>
+              {liveEngine === "playwright" ? "your browser" : "offline practice data"}
+            </Badge>
+            <Help text="Whether Quill is acting on the real X or on offline sample data." />
           </span>
-          <StatusDot ok={h?.session_ok} label={`session ${h?.session_ok ? "ok" : "down"}`} />
-          <StatusDot ok={h?.canary_ok} label={`canary ${h?.canary_ok ? "ok" : "fail"}`} />
-          <StatusDot ok={h?.worker_ok} label={`worker ${h?.worker_ok ? "ok" : "down"}`} />
-          <span className="num text-[13px] text-muted">queue {h?.queue ?? 0}</span>
+          <StatusDot ok={h?.session_ok} label={h?.session_ok ? "signed in to X" : "signed out"} />
+          <StatusDot ok={h?.canary_ok} label={h?.canary_ok ? "X layout matches" : "X layout changed"} />
+          <StatusDot ok={h?.worker_ok} label={h?.worker_ok ? "worker running" : "worker down"} />
+          <span className="num text-[13px] text-muted">{h?.queue ?? 0} in queue</span>
           {h?.latency_ms != null && (
-            <span className="num text-[13px] text-muted">latency {h.latency_ms}ms</span>
+            <span className="num text-[13px] text-muted">
+              {(h.latency_ms / 1000).toFixed(1)}s to load X
+            </span>
           )}
           {h?.stale_processes?.length > 0 && (
             <Badge tone="risk">stale: {h.stale_processes.join(", ")}</Badge>
@@ -168,7 +180,7 @@ function LiveLogs() {
   // EventSource reconnects on its own, so a momentary close is not a failure.
   // Report the live readyState rather than latching on the first error.
   const [link, setLink] = useState<number>(0);
-  const boxRef = useRef<HTMLPreElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
 
@@ -210,13 +222,63 @@ function LiveLogs() {
       >
         Live logs
       </SectionTitle>
-      <pre ref={boxRef}
-        className="mono h-[260px] overflow-auto rounded-md border border-rule bg-surface p-3
-          text-[11.5px] leading-[1.6] whitespace-pre-wrap break-words shadow-1">
-        {logs.length ? logs.join("\n") : link === 2 ? "stream closed" : "waiting for output…"}
-      </pre>
+      {/* Raw JSON is unreadable. Show time, level and the message; keep the
+          original line as a hover for when the detail actually matters. */}
+      <div ref={boxRef}
+        className="h-[260px] overflow-auto rounded-md border border-rule bg-surface
+          shadow-1 divide-y divide-[color:var(--rule)]">
+        {logs.length === 0 ? (
+          <div className="p-3 text-[12.5px] text-muted">
+            {link === 2 ? "Stream closed." : "Waiting for output…"}
+          </div>
+        ) : logs.map((raw, i) => {
+          const p = prettyLog(raw);
+          return (
+            <div key={i} title={raw}
+              className="px-3 py-1.5 flex items-baseline gap-2.5 text-[12px]">
+              <span className="num text-faint shrink-0">{p.time}</span>
+              <span className={cx("shrink-0 font-semibold text-[10.5px] uppercase tracking-wide",
+                p.level === "ERROR" ? "text-risk"
+                  : p.level === "WARNING" ? "text-warn" : "text-muted")}>
+                {p.level === "WARNING" ? "warn" : p.level.toLowerCase()}
+              </span>
+              <span className="min-w-0 text-ink-2 break-words">{p.message}</span>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
+}
+
+/** Turn a structured JSON log line into something a human can scan. */
+function prettyLog(raw: string): { time: string; level: string; message: string } {
+  try {
+    const d = JSON.parse(raw);
+    const at = String(d.at ?? "");
+    const time = at.includes(" ") ? at.split(" ")[1].split(",")[0] : at.slice(0, 8);
+    let msg = String(d.message ?? "");
+    const who = String(d.logger ?? "");
+    // the scheduler narrates itself constantly; say it in three words
+    const job = msg.match(/job "([^"]+?) \(trigger/i);
+    if (job) {
+      const name = job[1].replace(/^main\.<locals>\./, "").replace(/^_/, "");
+      msg = /executed successfully/.test(msg) ? `${name} finished` : `${name} started`;
+    }
+    // httpx narrates every model poll; one short line is plenty
+    if (who.startsWith("httpx")) {
+      const code = msg.match(/HTTP\/[\d.]+ (\d{3})/)?.[1];
+      msg = /11434|\/v1\//.test(msg)
+        ? `model endpoint ${code === "200" ? "ok" : code ?? "?"}`
+        : msg;
+    }
+    if (who && !who.startsWith("apscheduler") && !who.startsWith("httpx")) {
+      msg = `${who.replace(/^quill\./, "")}: ${msg}`;
+    }
+    return { time, level: String(d.level ?? "INFO"), message: msg };
+  } catch {
+    return { time: "", level: "INFO", message: raw };
+  }
 }
 
 function ModelCalls() {

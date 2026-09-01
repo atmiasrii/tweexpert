@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { TabId } from "../lib/nav";
 import {
-  Badge, Button, Card, ErrorState, Meter, SectionTitle, Skeleton, StatusDot, cx,
+  Badge, Button, Card, ErrorState, Help, Meter, SectionTitle, Skeleton,
+  StatCard, StatusDot, cx,
 } from "../components/ui";
 import { IconArrowRight, IconCheck, IconExternal, IconSpark } from "../components/Icons";
 import { LaunchPanel, useLaunchStatus } from "../components/LaunchPanel";
@@ -25,7 +26,19 @@ export function Home({ go }: { go: (t: TabId) => void }) {
   const queueN = queue.data?.length ?? 0;
   const shadowN = shadow.data?.length ?? 0;
 
+  // Everything that actually went out today, and how much of the watchlist
+  // Quill is allowed to answer without asking.
+  const sentToday = u
+    ? (u.replies_auto?.used ?? 0) + (u.replies_assisted?.used ?? 0) + (u.posts?.used ?? 0)
+    : 0;
+  const autoCount = accounts.data
+    ? (accounts.data as any[]).filter((a) => a.mode === "auto").length
+    : null;
+
   const stopped = launch.data ? !launch.data.live : false;
+  // The API process runs on fixtures even while the browser process is live, so
+  // the launcher is the only honest source for "what is actually posting".
+  const liveEngine = launch.data?.live ? launch.data.engine : h?.engine;
 
   if (gov.isError) return <ErrorState error={gov.error} onRetry={gov.refetch} />;
 
@@ -33,6 +46,30 @@ export function Home({ go }: { go: (t: TabId) => void }) {
     <div className="space-y-4">
       {/* The one control, above everything it governs. */}
       <LaunchPanel go={go} />
+
+      {/* The four numbers that answer "what's going on" without reading a word. */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Waiting for you" value={queue.isPending ? "—" : queueN}
+          tone={queueN > 0 ? "accent" : "neutral"} loading={queue.isPending}
+          sub={queueN > 0 ? "replies to review" : "queue is clear"}
+          onClick={() => go("Autopilot")}
+        />
+        <StatCard
+          label="Sent today" value={sentToday} tone={sentToday > 0 ? "go" : "neutral"}
+          sub={u ? `${u.replies_auto.used}/${u.replies_auto.cap} on its own` : undefined}
+        />
+        <StatCard
+          label="Accounts watched" value={accounts.data?.length ?? "—"}
+          sub={autoCount != null ? `${autoCount} reply on their own` : undefined}
+          onClick={() => go("Watchlist")}
+        />
+        <StatCard
+          label="Posts read today" value={u?.reads ?? "—"}
+          sub={g?.quiet_now ? "quiet hours — nothing sends" : "Quill is reading your feed"}
+          tone={g?.quiet_now ? "warn" : "neutral"}
+        />
+      </div>
 
       {/* Live: what Quill is doing right now, step by step. */}
       <PipelineFlow />
@@ -69,7 +106,7 @@ export function Home({ go }: { go: (t: TabId) => void }) {
         </Card>
 
         <Card>
-          <SectionTitle hint="today, per the governor (S-07)">Budget</SectionTitle>
+          <SectionTitle hint="how much Quill may do today">Daily limits</SectionTitle>
           {!u ? (
             <div className="grid sm:grid-cols-2 gap-4">
               {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-9" />)}
@@ -129,11 +166,13 @@ export function Home({ go }: { go: (t: TabId) => void }) {
         <Card className="space-y-2.5">
           <SectionTitle>Health</SectionTitle>
           <div className="space-y-2">
-            <HealthRow label="X session" ok={h?.session_ok} loading={health.isPending}
-              stale={stopped} okText="logged in" badText="signed out" />
-            <HealthRow label="Selector canary" ok={h?.canary_ok} loading={health.isPending}
-              stale={stopped} okText="matching" badText="drifted" />
-            <HealthRow label="Worker" ok={stopped ? false : h?.worker_ok}
+            <HealthRow label="Signed in to X" ok={h?.session_ok} loading={health.isPending}
+              stale={stopped} okText="yes" badText="signed out" />
+            <HealthRow
+              label={<>X layout check<Help text="X changes its page layout often. This checks Quill can still find tweets and the reply box." /></>}
+              ok={h?.canary_ok} loading={health.isPending}
+              stale={stopped} okText="matching" badText="changed" />
+            <HealthRow label="Background worker" ok={stopped ? false : h?.worker_ok}
               loading={health.isPending} okText="running" badText="not running" />
           </div>
           {stopped && (
@@ -142,9 +181,11 @@ export function Home({ go }: { go: (t: TabId) => void }) {
             </p>
           )}
           <div className="pt-2.5 mt-1 border-t border-rule flex items-center gap-2 text-[12.5px] text-muted">
-            <span>engine</span>
-            <Badge tone={h?.engine === "playwright" ? "accent" : "neutral"}>{h?.engine ?? "…"}</Badge>
-            {h?.engine === "fixture" && <span className="text-faint">offline fixtures</span>}
+            <span>Posting via</span>
+            <Badge tone={liveEngine === "playwright" ? "accent" : "neutral"}>
+              {liveEngine === "playwright" ? "your browser" : "practice data"}
+            </Badge>
+            <Help text="Whether Quill is acting on the real X, or on offline sample data." />
           </div>
           {h?.stale_processes?.length > 0 && (
             <div className="text-[12.5px] text-risk">stale: {h.stale_processes.join(", ")}</div>
@@ -229,7 +270,7 @@ function Attention({
 function HealthRow({
   label, ok, loading, stale, okText, badText,
 }: {
-  label: string; ok?: boolean; loading?: boolean; stale?: boolean;
+  label: React.ReactNode; ok?: boolean; loading?: boolean; stale?: boolean;
   okText: string; badText: string;
 }) {
   const unknown = loading || ok === undefined || stale;

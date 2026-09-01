@@ -5,6 +5,7 @@
 // It never promotes an account to auto. The shadow period is the safeguard the
 // rest of the design leans on, so this panel reports which accounts will only
 // draft and sends you to the Watchlist, where that change carries a warning.
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { TabId } from "../lib/nav";
@@ -97,6 +98,9 @@ export function LaunchPanel({ go }: { go: (t: TabId) => void }) {
     onError: (e) => reportError(e, "Could not release the kill switch"),
   });
 
+  // Declared before any early return so hook order stays stable.
+  const [showAll, setShowAll] = useState(false);
+
   async function onGoLive() {
     const s = q.data;
     const unresolved = (s?.checks ?? []).filter((c) => c.state === "blocked" && c.id !== "engine");
@@ -143,6 +147,9 @@ export function LaunchPanel({ go }: { go: (t: TabId) => void }) {
   const s = q.data!;
   const blockers = s.checks.filter((c) => c.state === "blocked");
   const warns = s.checks.filter((c) => c.state === "warn");
+  // Only what is wrong is worth screen space; everything else hides behind Details.
+  const problems = [...blockers, ...warns];
+  const visibleChecks = showAll ? s.checks : problems;
   const busy = start.isPending || stop.isPending;
 
   return (
@@ -201,11 +208,30 @@ export function LaunchPanel({ go }: { go: (t: TabId) => void }) {
 
       {(blockers.length > 0 || warns.length > 0 || s.live) && (
         <div className="border-t border-rule bg-surface-2/60 px-4 sm:px-5 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-faint mb-2">
-            {blockers.length ? `${blockers.length} thing${blockers.length === 1 ? "" : "s"} in the way` : "Status"}
+          {/* When everything is fine, one line says so. The full checklist is a
+              click away — a permanent wall of green ticks teaches nothing. */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[13px] font-medium">
+              {problems.length ? (
+                <span className="text-ink">
+                  {problems.length} thing{problems.length === 1 ? "" : "s"} need
+                  {problems.length === 1 ? "s" : ""} your attention
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-go">
+                  <IconCheck size={15} /> All systems go
+                </span>
+              )}
+            </span>
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="ml-auto text-[12.5px] text-muted hover:text-ink transition-colors"
+            >
+              {showAll ? "Hide details" : `Details (${s.checks.length})`}
+            </button>
           </div>
-          <ul className="space-y-1.5">
-            {s.checks.map((c) => (
+          <ul className={cx("space-y-1.5", visibleChecks.length === 0 && "hidden")}>
+            {visibleChecks.map((c) => (
               <li key={c.id} className="flex items-start gap-2.5">
                 <span className="mt-0.5 shrink-0">
                   {c.state === "ok" ? <IconCheck size={15} className="text-go" />
