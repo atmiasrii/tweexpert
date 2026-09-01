@@ -104,6 +104,7 @@ def main():
         startup_reconcile(sess)
     log.info("worker starting (runs_engine=%s)", RUNS_ENGINE)
 
+    _hb()                                  # first beat now, not in a minute
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(_hb, "interval", seconds=PROC_HEARTBEAT_INTERVAL_S, id="hb")
     scheduler.add_job(_watchdog, "interval", minutes=1, id="watchdog")

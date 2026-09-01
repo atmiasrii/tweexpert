@@ -56,6 +56,7 @@ def main():
         except Exception as e:
             log.warning("initial session check: %s", e)
 
+    _hb()                                  # first beat now, not in a minute
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(_hb, "interval", seconds=PROC_HEARTBEAT_INTERVAL_S, id="hb")
     scheduler.add_job(_drain, "interval", seconds=15, id="drain")

@@ -53,8 +53,8 @@ def approve_draft(session: Session, draft_id: int, text: str | None = None) -> d
     target = parent.x_post_id if parent else ""
     kind = draft.kind if draft.kind in ("reply", "publish", "thread") else "reply"
 
-    from ..config import get_settings
-    if get_settings().defer_writes:
+    from ..ops.launcher import writes_deferred
+    if writes_deferred(session):
         # api process: enqueue; the browser process (single engine owner) drains
         intent = get_bus().enqueue_write(kind, target, final, authz,
                                          issuer="human", draft_id=draft.id)

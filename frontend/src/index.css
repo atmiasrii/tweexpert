@@ -2,39 +2,328 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────
+   Design tokens. One accent, three semantic colours, two shadows.
+   Light is the base; dark overrides only what must change so a
+   missing token can never fall through to an unreadable value.
+   ───────────────────────────────────────────────────────────── */
 :root {
-  --ground: #edf0f4;
+  --ground: #f6f8fa;
   --surface: #ffffff;
-  --ink: #16202e;
-  --muted: #5c6a7c;
-  --rule: #c7d0db;
-  --accent: #1f5c75;   /* the single accent colour */
-  --risk: #a62f1b;
-  --go: #2c6b4f;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #0e141b;
-    --surface: #16202e;
-    --ink: #e6ecf3;
-    --muted: #8a97a8;
-    --rule: #2a3644;
-    --accent: #4aa3c4;
-    --risk: #e06a54;
-    --go: #57b98a;
-  }
+  --surface-2: #f1f4f8;
+  --surface-3: #e8edf3;
+  --ink: #0f1720;
+  --ink-2: #33414f;
+  --muted: #66758a;
+  --faint: #94a2b3;
+  --rule: #e3e8ef;
+  --rule-strong: #cfd8e3;
+
+  --accent: #0a7197;
+  --accent-hover: #075b7b;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2f1f7;
+
+  --risk: #b3311c;
+  --risk-soft: #fdecea;
+  --go: #1c7a55;
+  --go-soft: #e5f5ed;
+  --warn: #8a5c07;
+  --warn-soft: #fcf2df;
+
+  /* Chart marks are their own tokens: validated against the chart surface for
+     lightness, chroma and contrast, which is a different job from UI accent. */
+  --chart-1: #0a7197;
+  --chart-grid: #e8edf3;
+  --chart-axis: #94a2b3;
+
+  --shadow-1: 0 1px 2px rgba(15, 23, 32, 0.05), 0 0 0 1px rgba(15, 23, 32, 0.03);
+  --shadow-2: 0 6px 24px -8px rgba(15, 23, 32, 0.18), 0 1px 3px rgba(15, 23, 32, 0.06);
+  --shadow-pop: 0 16px 48px -12px rgba(15, 23, 32, 0.28);
+
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+
+  color-scheme: light;
 }
 
-html, body, #root { height: 100%; }
+:root[data-theme="dark"] {
+  --ground: #0a0e13;
+  --surface: #121821;
+  --surface-2: #19212c;
+  --surface-3: #212b38;
+  --ink: #e9eff7;
+  --ink-2: #c4cfdc;
+  --muted: #8695a8;
+  --faint: #66768a;
+  --rule: #222c39;
+  --rule-strong: #32404f;
+
+  --accent: #4cc2e0;
+  --accent-hover: #71d3ed;
+  --accent-ink: #05222c;
+  --accent-soft: rgba(76, 194, 224, 0.14);
+
+  --risk: #f08a72;
+  --risk-soft: rgba(240, 138, 114, 0.13);
+  --go: #56c795;
+  --go-soft: rgba(86, 199, 149, 0.13);
+  --warn: #e0b063;
+  --warn-soft: rgba(224, 176, 99, 0.13);
+
+  /* Dark is chosen, not an automatic flip: its own step from the same hue. */
+  --chart-1: #2aa0c6;
+  --chart-grid: #212b38;
+  --chart-axis: #66768a;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-2: 0 8px 28px -10px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 20px 56px -16px rgba(0, 0, 0, 0.8);
+
+  color-scheme: dark;
+}
+
+/* ── base ─────────────────────────────────────────────────── */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--ground);
   color: var(--ink);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
-/* tweet text is the loudest thing on screen (§19) */
-.tweet { font-size: 1.02rem; line-height: 1.5; color: var(--ink); }
-.kbd { font-family: "JetBrains Mono", monospace; font-size: 11px;
-  border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--muted); }
-button { font-family: inherit; }
+
+* {
+  border-color: var(--rule);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* One focus treatment, keyboard-only. Form controls are excluded: .field
+   already draws its own ring, and both at once reads as a rendering bug. */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.field:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* ── scrollbars ───────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+  background-clip: content-box;
+}
+
+/* ── typography helpers ───────────────────────────────────── */
+/* Tweet text is the loudest thing on screen (§19). */
+.tweet {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  letter-spacing: -0.006em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── motion ───────────────────────────────────────────────── */
+@keyframes q-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes q-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes q-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes q-shimmer {
+  from {
+    background-position: -220% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+@keyframes q-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-fade {
+  animation: q-fade-in 0.16s ease-out both;
+}
+.anim-rise {
+  animation: q-rise 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-toast {
+  animation: q-toast-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    var(--surface-3) 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 220% 100%;
+  animation: q-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── form controls ────────────────────────────────────────── */
+/* In Tailwind's components layer so a utility (border-0, rounded-none) still
+   wins over these defaults regardless of source order. */
+@layer components {
+  .field {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-sm);
+    color: var(--ink);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .field:hover:not(:disabled) {
+    border-color: var(--muted);
+  }
+  .field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    outline: none;
+  }
+  .field::placeholder {
+    color: var(--faint);
+  }
+  .field:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  select.field {
+    appearance: none;
+    padding-right: 26px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+      linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 51%, calc(100% - 9px) 51%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  /* Native option lists inherit the page surface in dark mode. */
+  select.field option {
+    background: var(--surface);
+    color: var(--ink);
+  }
+}

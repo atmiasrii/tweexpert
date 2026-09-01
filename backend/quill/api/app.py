@@ -6,15 +6,16 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import get_settings
 from ..db.engine import init_db, session_scope
+from ..governor.governor import GovernorRefusal
 from ..logging_setup import get_logger, setup_logging
 from .routes import (accounts, analytics_routes, auth_routes, autopilot,
-                     extension_routes, governor_routes, notify_routes,
-                     ops_routes, persona_routes, studio)
+                     extension_routes, governor_routes, launch_routes,
+                     notify_routes, ops_routes, persona_routes, studio)
 
 log = get_logger("quill.api")
 
@@ -43,8 +44,16 @@ def create_app(run_startup: bool = True) -> FastAPI:
               studio.router, persona_routes.router, analytics_routes.router,
               analytics_routes.export, governor_routes.router, ops_routes.router,
               ops_routes.events_router, notify_routes.router,
-              extension_routes.router):
+              extension_routes.router, launch_routes.router):
         app.include_router(r)
+
+    # A governor refusal is the safeguard working, not a server fault. Without
+    # this it surfaced as a 500 and the dashboard could not say which gate
+    # stopped the write.
+    @app.exception_handler(GovernorRefusal)
+    async def _refusal(request: Request, exc: GovernorRefusal):
+        log.info("write refused by the governor: %s", exc)
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
 
     @app.get("/api/ping")
     def ping():

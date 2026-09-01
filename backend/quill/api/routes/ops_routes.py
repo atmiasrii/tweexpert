@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from ...config import get_settings
 from ...db.engine import get_session
 from ...db.models import Action, Draft, Health
-from ...logging_setup import LOG_FILE
+from ... import logging_setup
 from ...ops import backup as backup_mod
 from ...ops.health import latest_health
 from ..auth import require_auth
@@ -67,7 +67,8 @@ def actions(kind: str = Query(default=""), outcome: str = Query(default=""),
 async def logs(_=Depends(require_auth)):
     """Tail structured logs live over SSE (O-04)."""
     async def gen():
-        path = LOG_FILE
+        # Read at call time: setup_logging() rebinds this after import.
+        path = logging_setup.LOG_FILE
         if not path or not path.exists():
             yield "event: log\ndata: {}\n\n"
             return
