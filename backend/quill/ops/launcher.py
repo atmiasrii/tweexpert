@@ -335,6 +335,8 @@ def status(session: Session) -> dict:
     started_at = get_setting(session, "live_started_at", None)
     return {
         "live": is_live(session),
+        # The dashboard renders true-to-X previews and needs the handle.
+        "operator": get_settings().operator_handle,
         "engine": get_setting(session, "live_engine", get_settings().browser_engine),
         "processes": running(session),
         "started_at": started_at,

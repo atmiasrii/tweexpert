@@ -88,12 +88,12 @@ export function StatusBar({
         </div>
 
         {/* Live state. Collapses progressively rather than wrapping. */}
-        <div className="hidden xl:flex items-center gap-3 ml-4">
+        <div className="hidden xl:flex items-center gap-3 ml-4 shrink-0">
           <Badge tone={g?.mode === "auto" ? "accent" : g?.mode === "assisted" ? "warn" : "neutral"}>
             {g?.mode ?? "—"}
           </Badge>
           {u && (
-            <span className="num text-[12.5px] text-muted">
+            <span className="num text-[12.5px] text-muted whitespace-nowrap">
               <b className="text-ink-2 font-semibold">{u.replies_auto.used}</b>/{u.replies_auto.cap} auto
               <span className="text-faint"> · </span>
               <b className="text-ink-2 font-semibold">{u.replies_assisted.used}</b>/{u.replies_assisted.cap} assisted
@@ -101,12 +101,16 @@ export function StatusBar({
           )}
         </div>
 
-        <div className="hidden lg:flex items-center gap-3 ml-auto mr-1">
-          <StatusDot ok={g?.session_ok} unknown={!g || stopped}
-            label={`session ${!g ? "…" : stopped ? "not checked" : g.session_ok ? "ok" : "down"}`} />
-          <StatusDot ok={g?.canary_ok} unknown={!g || stopped}
-            label={`canary ${!g ? "…" : stopped ? "not checked" : g.canary_ok ? "ok" : "fail"}`} />
-          <span className="text-[12.5px] text-muted num">
+        <div className="hidden lg:flex items-center gap-3 ml-auto mr-1 shrink-0">
+          <span title={stopped ? "Not sampled while Quill is stopped" : undefined}>
+            <StatusDot ok={g?.session_ok} unknown={!g || stopped}
+              label={`session ${!g ? "..." : stopped ? "idle" : g.session_ok ? "ok" : "down"}`} />
+          </span>
+          <span title={stopped ? "Not sampled while Quill is stopped" : undefined}>
+            <StatusDot ok={g?.canary_ok} unknown={!g || stopped}
+              label={`canary ${!g ? "..." : stopped ? "idle" : g.canary_ok ? "ok" : "fail"}`} />
+          </span>
+          <span className="text-[12.5px] text-muted num whitespace-nowrap">
             next {g?.next_slot
               ? new Date(g.next_slot).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
               : "—"}

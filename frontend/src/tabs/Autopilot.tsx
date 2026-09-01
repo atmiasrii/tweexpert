@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useLaunchStatus } from "../components/LaunchPanel";
+import { TweetCard, tweetLength } from "../components/TweetPreview";
 import {
   Badge, Button, Card, EmptyState, ErrorState, Segmented, SkeletonCard, Textarea, cx,
 } from "../components/ui";
@@ -57,6 +58,7 @@ export function Autopilot({ suspendKeys = false, go }: {
 function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: () => void }) {
   const qc = useQueryClient();
   const launch = useLaunchStatus();
+  const operator = launch.data?.operator ?? "you";
   const { toast, reportError } = useToast();
   const q = useQuery({ queryKey: ["queue"], queryFn: () => api.get("/api/queue") });
   const items: any[] = q.data ?? [];
@@ -201,7 +203,7 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
 
   const cand = cur?.candidates?.[pick];
   const critic = cand?.critic ?? cur?.critic?.[pick];
-  const overLimit = text.length > 280;
+  const overLimit = tweetLength(text) > 280;
   const edited = cand ? text.trim() !== String(cand.text ?? "").trim() : false;
 
   return (
@@ -225,16 +227,20 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
 
       {cur && (
         <Card pad={false} className="overflow-hidden">
-          {/* Source post — untrusted text, rendered as data and nothing else (X-05). */}
-          <div className="p-4 pb-3 border-b border-rule bg-surface-2/60">
-            <div className="flex items-center gap-2 mb-2">
-              <Avatar handle={cur.parent?.author ?? cur.account} />
-              <span className="text-[13.5px] font-semibold truncate">@{cur.parent?.author ?? cur.account}</span>
-              <Badge tone={cur.relevance >= 78 ? "accent" : "neutral"} className="ml-auto shrink-0">
-                rel {Math.round(cur.relevance)}
-              </Badge>
-            </div>
-            <div className="tweet text-ink-2">{cur.parent?.text}</div>
+          {/* Source post, shown as it appears on X so the reply can be judged in
+              context. The text is still untrusted data and nothing else (X-05):
+              it is rendered, never interpreted. */}
+          <div className="border-b border-rule bg-surface-2/60 relative">
+            <Badge tone={cur.relevance >= 78 ? "accent" : "neutral"}
+              className="absolute top-3 right-3.5 z-10">
+              rel {Math.round(cur.relevance)}
+            </Badge>
+            <TweetCard
+              handle={cur.parent?.author ?? cur.account ?? "?"}
+              text={cur.parent?.text ?? ""}
+              time="earlier"
+              connector
+            />
           </div>
 
           {/* The reply. Loudest element on the card. */}
@@ -243,7 +249,7 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
               <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">Your reply</span>
               {edited && <Badge tone="warn">edited</Badge>}
               <span className={cx("ml-auto num text-[12px]", overLimit ? "text-risk font-semibold" : "text-faint")}>
-                {text.length}/280
+                {tweetLength(text)}/280
               </span>
             </div>
 
@@ -258,17 +264,25 @@ function Queue({ suspendKeys, onGoSetup }: { suspendKeys: boolean; onGoSetup: ()
                 aria-label="Edit reply"
               />
             ) : (
-              <button
+              // A div, not a button: a button may only contain phrasing content
+              // and the preview is an article element.
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={startEdit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit(); }
+                }}
                 className={cx(
-                  "w-full text-left rounded-sm border border-transparent px-2.5 py-2 -mx-2.5",
+                  "relative rounded-sm border border-transparent -mx-3.5 cursor-text",
                   "hover:border-rule hover:bg-surface-2 transition-colors group"
                 )}
                 title="Click to edit (E)"
               >
-                <span className="tweet">{text}</span>
-                <IconPencil size={13} className="inline-block ml-1.5 mb-0.5 text-faint opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
+                <TweetCard handle={operator} text={text} replyingTo={cur.parent?.author} />
+                <IconPencil size={13}
+                  className="absolute top-3 right-3 text-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             )}
 
             {/* Candidates: three angles, picked by number key or tap. */}

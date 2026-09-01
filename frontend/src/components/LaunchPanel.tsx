@@ -25,6 +25,8 @@ export type LaunchCheck = {
 export type LaunchStatus = {
   live: boolean;
   engine: string;
+  /** The X handle Quill posts as; used by the previews. */
+  operator?: string;
   processes: Record<string, boolean>;
   started_at: string | null;
   queued_drafts: number;
