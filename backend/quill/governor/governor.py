@@ -93,6 +93,8 @@ def in_quiet_hours(session: Session, at: datetime | None = None) -> bool:
 
 def _cap_for(session: Session, kind: str, mode: str) -> tuple[int, str]:
     if kind in ("reply",):
+        if mode == "foryou":
+            return get_setting(session, "foryou_daily_cap", 40), "replies_foryou"
         if mode == "auto":
             return get_setting(session, "cap_replies_auto", CAP_REPLIES_AUTO), "replies_auto"
         return get_setting(session, "cap_replies_assisted", CAP_REPLIES_ASSISTED), "replies_assisted"
@@ -144,7 +146,9 @@ def check_write_allowed(session: Session, kind: str, mode: str) -> None:
 def record_write(session: Session, kind: str, mode: str) -> None:
     day = get_day(session)
     if kind == "reply":
-        if mode == "auto":
+        if mode == "foryou":
+            day.replies_foryou += 1
+        elif mode == "auto":
             day.replies_auto += 1
         else:
             day.replies_assisted += 1

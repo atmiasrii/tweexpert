@@ -14,7 +14,14 @@ async function req(method: string, path: string, body?: unknown) {
     credentials: "same-origin",
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 401) throw new Error("unauthenticated");
+  if (res.status === 401) {
+    // Session expired or the signing key changed under us. Bounce to login
+    // rather than spraying "unauthenticated" toasts across every panel.
+    if (path !== "/api/auth/csrf" && path !== "/api/auth/login") {
+      try { window.dispatchEvent(new Event("quill-unauth")); } catch {}
+    }
+    throw new Error("Session expired — please sign in again.");
+  }
   if (!res.ok) throw new Error((await res.text()) || res.statusText);
   const ct = res.headers.get("content-type") || "";
   return ct.includes("application/json") ? res.json() : res.text();

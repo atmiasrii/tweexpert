@@ -1,12 +1,12 @@
 // The nine tabs (§19), in one place: the sidebar, the command palette and the
 // keyboard shortcuts all read this list so they can never drift apart.
 import {
-  IconAnalytics, IconAutopilot, IconCompose, IconDiscover, IconHome,
+  IconAnalytics, IconAutopilot, IconCompose, IconDeck, IconDiscover, IconHome,
   IconOps, IconPersona, IconSchedule, IconWatchlist,
 } from "../components/Icons";
 
 export type TabId =
-  | "Home" | "Autopilot" | "Compose" | "Schedule" | "Watchlist"
+  | "Home" | "Autopilot" | "Deck" | "Compose" | "Schedule" | "Watchlist"
   | "Discover" | "Analytics" | "Persona" | "Ops";
 
 export type TabDef = {
@@ -23,6 +23,7 @@ export type TabDef = {
 
 export const TABS: TabDef[] = [
   { id: "Autopilot", label: "Autopilot", blurb: "Review the reply queue and the shadow log", icon: IconAutopilot, key: "a", group: "review" },
+  { id: "Deck", label: "Deck", blurb: "TweetDeck view — pending, sent and For You in columns", icon: IconDeck, key: "t", group: "review" },
   { id: "Home", label: "Overview", blurb: "Safeguards, caps and what needs attention", icon: IconHome, key: "h", group: "review" },
 
   { id: "Compose", label: "Compose", blurb: "Write a post, draft from an idea, capture ideas", icon: IconCompose, key: "c", group: "write" },

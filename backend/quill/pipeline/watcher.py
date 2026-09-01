@@ -12,7 +12,7 @@ from ..db.models import Account
 from ..defaults import POLL_INTERVAL_TIER, POLL_JITTER_FRAC
 from ..governor import governor
 from ..logging_setup import get_logger
-from . import pipeline
+from . import live_state, pipeline
 
 log = get_logger("quill.watcher")
 
@@ -27,6 +27,8 @@ def watch_once(session: Session, account: Account) -> list[pipeline.Outcome]:
         log.info("read budget exhausted; skipping @%s", account.handle)
         return []
     bus = get_bus()
+    live_state.record(session, "watching", f"reading @{account.handle}",
+                      target=account.handle)
     posts = bus.submit_read("read_user", account.handle,
                             {"since_id": account.high_water_post_id})
     governor.record_read(session, 1)
@@ -46,6 +48,31 @@ def watch_once(session: Session, account: Account) -> list[pipeline.Outcome]:
         session.add(account)
         session.commit()
     return outcomes
+
+
+def watch_foryou(session: Session, limit: int = 15) -> dict:
+    """Read the For-You / home feed and draft replies to those posts too, not
+    just the watchlist. These come in as assisted (no account = draft-only)."""
+    if governor.read_budget_left(session) <= 0:
+        return {"skipped": "read budget"}
+    bus = get_bus()
+    live_state.record(session, "watching", "reading your For You feed", target="For You")
+    posts = bus.submit_read("presence", "home") or []
+    governor.record_read(session, 1)
+    from ..config import get_settings
+    op = get_settings().operator_handle
+    summary = {"source": "foryou", "polled": 0, "queued": 0, "shadow": 0,
+               "discarded": 0, "silent": 0, "auto_scheduled": 0}
+    for post in posts[:limit]:
+        if post.author_handle == op:
+            continue
+        # If the author is a watched account, honour that account's mode.
+        acc = session.exec(select(Account).where(
+            Account.handle == post.author_handle)).first()
+        oc = pipeline.process_post(session, post, acc)
+        summary["polled"] += 1
+        summary[oc.status] = summary.get(oc.status, 0) + 1
+    return summary
 
 
 def watch_all(session: Session) -> dict:

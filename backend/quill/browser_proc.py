@@ -85,11 +85,17 @@ def main():
             pl.send_due_auto(sess)
             sched.send_due_scheduled(sess)
 
+    def foryou():
+        from .pipeline import foryou_auto
+        with session_scope() as sess:
+            foryou_auto.tick(sess)
+
     scheduler.add_job(heartbeat, "interval", seconds=HEARTBEAT_INTERVAL_S, id="session_hb")
     scheduler.add_job(canary, "interval", minutes=30, id="canary")
     scheduler.add_job(watch, "interval", minutes=3, id="watch")
     scheduler.add_job(presence, "interval", minutes=17, id="presence")
     scheduler.add_job(sends, "interval", seconds=30, id="sends")
+    scheduler.add_job(foryou, "interval", minutes=1, id="foryou")   # checks its own interval
     scheduler.add_job(_restart_chromium, "cron", hour=CHROMIUM_RESTART_HOUR, id="restart")
     scheduler.start()
 

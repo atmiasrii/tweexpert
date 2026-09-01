@@ -12,10 +12,17 @@ _engine = None
 def get_engine(reset: bool = False):
     global _engine
     if _engine is None or reset:
+        if reset and _engine is not None and hasattr(_engine, "close"):
+            try:
+                _engine.close()          # stop the old actor thread / context
+            except Exception:
+                pass
         s = get_settings()
         if s.browser_engine == "playwright":
-            from .playwright_engine import PlaywrightEngine
-            _engine = PlaywrightEngine()
+            # Wrap Playwright in the single-thread actor so sync-API calls never
+            # cross threads (greenlet.error). Fixture stays plain.
+            from .actor import ThreadedEngine
+            _engine = ThreadedEngine()
         else:
             _engine = FixtureEngine()
     return _engine

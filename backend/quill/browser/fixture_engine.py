@@ -129,11 +129,15 @@ class FixtureEngine:
 
     def presence(self, kind: str) -> list[ParsedPost]:
         self._guard()
-        # scrolling home surfaces some posts; feeds discovery (H-05)
+        # scrolling home surfaces a feed of posts; feeds discovery (H-05) and
+        # the For-You loop. Interleave authors so it looks like a real feed.
         out = []
-        for handle, rows in self._timeline.items():
-            for raw in rows[:1]:
-                out.append(self._mk(handle, raw))
+        cols = [list(rows) for rows in self._timeline.values()]
+        handles = list(self._timeline.keys())
+        for depth in range(3):
+            for hi, col in enumerate(cols):
+                if depth < len(col):
+                    out.append(self._mk(handles[hi], col[depth]))
         return out
 
     def canary(self) -> CanaryResult:

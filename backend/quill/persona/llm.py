@@ -45,7 +45,8 @@ class LLM:
 
     # -- low level -------------------------------------------------------
     def _chat(self, model: str, messages: list[dict], temperature: float,
-              role: str, json_mode: bool = False) -> str:
+              role: str, json_mode: bool = False, max_tokens: int | None = None,
+              frequency_penalty: float = 0.0, presence_penalty: float = 0.0) -> str:
         t0 = time.time()
         if not self.s.llm_available:
             out = _offline_chat(messages, json_mode)
@@ -57,6 +58,12 @@ class LLM:
                 "messages": messages,
                 "temperature": temperature,
             }
+            if max_tokens:
+                payload["max_tokens"] = max_tokens
+            if frequency_penalty:
+                payload["frequency_penalty"] = frequency_penalty
+            if presence_penalty:
+                payload["presence_penalty"] = presence_penalty
             if json_mode:
                 payload["response_format"] = {"type": "json_object"}
             r = httpx.post(
@@ -86,10 +93,13 @@ class LLM:
 
     # -- high level ------------------------------------------------------
     def draft(self, system: str, user: str, temperature: float) -> str:
+        # Cap length and penalise repetition so the model can't loop into a wall
+        # of "upgrades without upgrades…" or overrun the 280-char limit.
         return self._chat(self.s.draft_model,
                           [{"role": "system", "content": system},
                            {"role": "user", "content": user}],
-                          temperature, role="draft")
+                          temperature, role="draft",
+                          max_tokens=90, frequency_penalty=0.7, presence_penalty=0.3)
 
     def critic(self, system: str, user: str) -> dict:
         raw = self._chat(self.s.critic_model,

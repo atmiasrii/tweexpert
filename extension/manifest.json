@@ -3,8 +3,8 @@
   "name": "Quill",
   "version": "1.0.0",
   "description": "Quill studio companion — reads the timeline and shows the pending reply queue inside x.com. Talks only to your local Quill backend.",
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["http://127.0.0.1:8000/*", "https://x.com/*", "https://twitter.com/*"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "alarms"],
+  "host_permissions": ["http://127.0.0.1:8770/*", "http://localhost:8770/*", "http://127.0.0.1:8000/*", "https://x.com/*", "https://twitter.com/*"],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html", "default_title": "Quill" },
   "content_scripts": [

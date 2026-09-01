@@ -225,6 +225,39 @@ def _heartbeat_fresh(session: Session, process: str) -> bool:
     return (datetime.now(timezone.utc) - at).total_seconds() <= WATCHDOG_STALE_S
 
 
+_model_cache: dict = {"at": 0.0, "ok": False, "detail": ""}
+
+
+def model_reachable() -> tuple[bool, str]:
+    """Actually ping the model endpoint so status is real, not a config guess.
+    Cached briefly so repeated status calls stay snappy."""
+    import httpx
+    now = time.time()
+    if now - _model_cache["at"] < 15:
+        return _model_cache["ok"], _model_cache["detail"]
+    s = get_settings()
+    ok, detail = False, ""
+    try:
+        r = httpx.get(f"{s.llm_base_url.rstrip('/')}/models",
+                      headers={"Authorization": f"Bearer {s.llm_api_key}"}, timeout=3)
+        if r.status_code < 500:
+            names = []
+            try:
+                names = [m.get("id", "") for m in r.json().get("data", [])]
+            except Exception:
+                pass
+            has = (not names) or (s.draft_model in names)
+            ok = True
+            detail = (f"{s.draft_model} ready" if has
+                      else f"reachable, but '{s.draft_model}' not pulled")
+        else:
+            detail = f"endpoint returned {r.status_code}"
+    except Exception as e:
+        detail = f"cannot reach {s.llm_base_url}"
+    _model_cache.update(at=now, ok=ok, detail=detail)
+    return ok, detail
+
+
 def session_logged_in() -> tuple[bool, str]:
     """Does Quill's own browser profile hold a live X session?
 
@@ -294,16 +327,17 @@ def readiness(session: Session) -> list[Check]:
             "autonomy", "Replying on its own", "ok",
             f"{len(auto)} account(s) on auto; {len(drafting_only)} drafting only."))
 
-    # 5. Voice quality. Not a blocker - the pipeline runs without a model.
-    if not s.llm_available:
+    # 5. Voice quality. Not a blocker - the pipeline runs without a model, but
+    #    the reply quality depends on it. Checked with a real ping (not a flag).
+    reachable, mdetail = model_reachable()
+    if reachable:
+        checks.append(Check("llm", "Local language model", "ok", mdetail))
+    else:
         checks.append(Check(
             "llm", "Local language model", "warn",
-            "No model reachable, so drafts come from the offline template "
-            "generator and the safety gate refuses many of them. "
-            f"Point QUILL_LLM_BASE_URL at Ollama or vLLM ({s.llm_base_url}).",
-            ""))
-    else:
-        checks.append(Check("llm", "Local language model", "ok", s.draft_model))
+            f"{mdetail}. Drafts fall back to the offline template generator "
+            "(much weaker). Start Ollama or point QUILL_LLM_BASE_URL at your "
+            f"endpoint ({s.llm_base_url}).", ""))
 
     # 6. Are the processes actually up?
     if live:

@@ -77,6 +77,11 @@ def _engine_jobs(scheduler: BackgroundScheduler):
             from .pipeline import schedule as sched
             sched.send_due_scheduled(s)
 
+    def foryou():
+        from .pipeline import foryou_auto
+        with session_scope() as s:
+            foryou_auto.tick(s)
+
     def searches():
         with session_scope() as s:
             discovery.run_saved_searches(s)
@@ -93,6 +98,7 @@ def _engine_jobs(scheduler: BackgroundScheduler):
     scheduler.add_job(presence, "interval", minutes=17, id="presence")
     scheduler.add_job(sends, "interval", seconds=30, id="sends")
     scheduler.add_job(searches, "interval", minutes=5, id="searches")
+    scheduler.add_job(foryou, "interval", minutes=1, id="foryou")   # checks interval itself
     scheduler.add_job(analytics, "interval", minutes=20, id="analytics")
 
 

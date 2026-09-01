@@ -8,6 +8,7 @@ import {
 } from "../components/ui";
 import { IconArrowRight, IconCheck, IconExternal, IconSpark } from "../components/Icons";
 import { LaunchPanel, useLaunchStatus } from "../components/LaunchPanel";
+import { PipelineFlow } from "../components/PipelineFlow";
 
 export function Home({ go }: { go: (t: TabId) => void }) {
   const gov = useQuery({ queryKey: ["governor"], queryFn: () => api.get("/api/governor") });
@@ -32,6 +33,9 @@ export function Home({ go }: { go: (t: TabId) => void }) {
     <div className="space-y-4">
       {/* The one control, above everything it governs. */}
       <LaunchPanel go={go} />
+
+      {/* Live: what Quill is doing right now, step by step. */}
+      <PipelineFlow />
 
       <div className="grid gap-4 lg:grid-cols-3 items-start">
       {/* What needs a human, first and largest. */}

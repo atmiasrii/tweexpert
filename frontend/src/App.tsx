@@ -11,6 +11,7 @@ import { api, bootstrapCsrf, login, subscribeEvents } from "./lib/api";
 import { TABS, TabId } from "./lib/nav";
 import { Home } from "./tabs/Home";
 import { Autopilot } from "./tabs/Autopilot";
+import { Deck } from "./tabs/Deck";
 import { Compose } from "./tabs/Compose";
 import { Schedule } from "./tabs/Schedule";
 import { Watchlist } from "./tabs/Watchlist";
@@ -34,6 +35,14 @@ function readTab(): TabId {
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   useEffect(() => { bootstrapCsrf().then(setAuthed); }, []);
+
+  // A 401 anywhere means the session lapsed — drop to the login screen instead
+  // of leaving broken panels behind.
+  useEffect(() => {
+    const onUnauth = () => setAuthed(false);
+    window.addEventListener("quill-unauth", onUnauth);
+    return () => window.removeEventListener("quill-unauth", onUnauth);
+  }, []);
 
   if (authed === null) return <Booting />;
   if (!authed) return <Login onDone={() => setAuthed(true)} />;
@@ -143,6 +152,7 @@ function Shell() {
           <div key={tab} className="anim-fade">
             {tab === "Home" && <Home go={setTab} />}
             {tab === "Autopilot" && <Autopilot suspendKeys={anyOverlay} go={setTab} />}
+            {tab === "Deck" && <Deck />}
             {tab === "Compose" && <Compose />}
             {tab === "Schedule" && <Schedule />}
             {tab === "Watchlist" && <Watchlist />}

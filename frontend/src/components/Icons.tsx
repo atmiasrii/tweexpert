@@ -27,6 +27,9 @@ function Svg({ size = 18, className = "", strokeWidth = 1.6, children }: P & { c
 export const IconHome = (p: P) => (
   <Svg {...p}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /></Svg>
 );
+export const IconDeck = (p: P) => (
+  <Svg {...p}><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="9.5" y="4" width="5" height="16" rx="1" /><rect x="16" y="4" width="5" height="16" rx="1" /></Svg>
+);
 export const IconAutopilot = (p: P) => (
   <Svg {...p}><path d="M12 3v3" /><circle cx="12" cy="12" r="4" /><path d="M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" /></Svg>
 );

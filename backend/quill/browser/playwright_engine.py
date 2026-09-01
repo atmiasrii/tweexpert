@@ -144,31 +144,71 @@ class PlaywrightEngine:
         self._human_scroll(3)
         return self._parse_timeline(handle, since_id)
 
+    def _extract(self, art, surface_handle: str = "") -> ParsedPost | None:
+        """One <article> -> ParsedPost. Reads the tweet's OWN author from its
+        permalink (needed on the home/For-You feed where every post has a
+        different author), falling back to the surface handle on a profile page."""
+        try:
+            text = art.locator(self.reg.get("tweet_text").primary).first.inner_text()
+        except Exception:
+            text = ""
+        pid, link, author = "", "", surface_handle
+        try:
+            href = art.locator(self.reg.get("tweet_link").primary).first.get_attribute("href")
+            if href and "/status/" in href:
+                # href looks like /{author}/status/{id}
+                parts = href.strip("/").split("/")
+                if len(parts) >= 3 and parts[1] == "status":
+                    author = author or parts[0]
+                    if not surface_handle:
+                        author = parts[0]
+                pid = href.split("/status/")[1].split("?")[0].split("/")[0]
+                link = f"https://x.com{href}"
+        except Exception:
+            pass
+        if not pid:
+            return None
+        media = False
+        try:
+            media = art.locator('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]').count() > 0
+        except Exception:
+            pass
+        return ParsedPost(x_post_id=pid, author_handle=author, text=text,
+                          url=link, media=media)
+
     def _parse_timeline(self, handle: str, since_id: str = "") -> list[ParsedPost]:
         tweets, _ = self._find_all("tweet")
         out: list[ParsedPost] = []
         for i in range(min(tweets.count(), 30)):
-            art = tweets.nth(i)
-            try:
-                text = art.locator(self.reg.get("tweet_text").primary).inner_text()
-            except Exception:
-                text = ""
-            link = ""
-            pid = ""
-            try:
-                href = art.locator(self.reg.get("tweet_link").primary).first.get_attribute("href")
-                if href and "/status/" in href:
-                    pid = href.split("/status/")[1].split("?")[0].split("/")[0]
-                    link = f"https://x.com{href}"
-            except Exception:
-                pass
-            if not pid:
+            p = self._extract(tweets.nth(i), surface_handle=handle)
+            if p is None:
                 continue
-            if since_id and pid == since_id:
+            if since_id and p.x_post_id == since_id:
                 break  # high-water mark (I-03)
-            out.append(ParsedPost(x_post_id=pid, author_handle=handle,
-                                  text=text, url=link, media=False))
+            out.append(p)
         return out
+
+    def _collect_feed(self, surface_handle: str = "", since_id: str = "",
+                      target: int = 25, rounds: int = 7) -> list[ParsedPost]:
+        """Scroll a feed incrementally, collecting unique posts until `target`
+        or a known high-water id. Used for home/search where one pass misses
+        most of the feed."""
+        seen: set[str] = set()
+        out: list[ParsedPost] = []
+        for _ in range(rounds):
+            tweets, _sel = self._find_all("tweet")
+            for i in range(tweets.count()):
+                p = self._extract(tweets.nth(i), surface_handle=surface_handle)
+                if p is None or p.x_post_id in seen:
+                    continue
+                if since_id and p.x_post_id == since_id:
+                    return out
+                seen.add(p.x_post_id)
+                out.append(p)
+            if len(out) >= target:
+                break
+            self._human_scroll(1)
+        return out[:target]
 
     def read_post(self, x_post_id: str, depth: int = 3) -> list[ParsedPost]:
         # E-11: reading replies improves context and looks human
@@ -177,20 +217,50 @@ class PlaywrightEngine:
     def search(self, query: str) -> list[ParsedPost]:
         url = self.reg.surfaces["search"]["url_template"].format(query=query)
         self._goto(url)
-        self._human_scroll(2)
-        return self._parse_timeline("")
+        return self._collect_feed(surface_handle="", target=25)
 
     def notifications(self) -> list[ParsedPost]:
         self._goto(self.reg.surfaces["notifications"]["url"])
-        return self._parse_timeline("")
+        return self._collect_feed(surface_handle="", target=25)
 
     def metrics(self, x_post_id: str) -> ParsedPost | None:
         return None  # parsed from own-post pages in production
 
     def presence(self, kind: str) -> list[ParsedPost]:
+        # The For-You / home feed: collect the real feed with per-tweet authors.
         self._goto(self.reg.surfaces["home"]["url"])
-        self._human_scroll(random.randint(4, 10))
-        return self._parse_timeline("")
+        return self._collect_feed(surface_handle="", target=25)
+
+    def following(self, handle: str = "") -> list[tuple[str, str, str]]:
+        """Scrape who the operator follows, for the live watchlist import."""
+        handle = handle or self.s.operator_handle
+        self._goto(f"https://x.com/{handle}/following")
+        seen: set[str] = set()
+        out: list[tuple[str, str, str]] = []
+        for _ in range(12):
+            try:
+                cells = self._page.locator('[data-testid="UserCell"]')
+                for i in range(cells.count()):
+                    try:
+                        links = cells.nth(i).locator('a[href^="/"]')
+                        h = ""
+                        for j in range(links.count()):
+                            href = links.nth(j).get_attribute("href") or ""
+                            m = href.strip("/")
+                            if m and "/" not in m and not m.startswith("i"):
+                                h = m
+                                break
+                        if h and h not in seen:
+                            seen.add(h)
+                            out.append((h, h, "B"))
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            if len(out) >= 200:
+                break
+            self._human_scroll(1)
+        return out
 
     def canary(self) -> CanaryResult:
         missing = []

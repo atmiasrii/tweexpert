@@ -1,11 +1,19 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
-body { font-family: system-ui, sans-serif; padding: 16px; max-width: 420px; }
-input { width: 100%; padding: 8px; margin: 8px 0; }
-button { padding: 8px 12px; }
+body { font-family: system-ui, sans-serif; padding: 18px; max-width: 440px; }
+label { display:block; font-size:13px; font-weight:600; margin-top:12px; }
+input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+button { margin-top: 14px; padding: 8px 14px; }
+.hint { color:#5b7083; font-size:12px; margin-top:4px; }
+#status { margin-top:10px; color:#00ba7c; font-size:13px; }
 </style></head><body>
 <h2>Quill extension</h2>
-<p>Paste the per-install shared secret from your <code>.env</code> (QUILL_EXTENSION_SHARED_SECRET). The extension talks only to <code>http://127.0.0.1:8000</code>.</p>
-<input id="secret" type="password" placeholder="shared secret" />
+<label>Backend URL
+  <input id="api" type="text" placeholder="http://127.0.0.1:8770" />
+</label>
+<div class="hint">Where Quill's local API is running (loopback only).</div>
+<label>Shared secret
+  <input id="secret" type="password" placeholder="QUILL_EXTENSION_SHARED_SECRET from .env" />
+</label>
 <button id="save">Save</button>
 <div id="status"></div>
 <script src="options.js"></script>

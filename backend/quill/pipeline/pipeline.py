@@ -84,6 +84,20 @@ def _caps_ok(session: Session, account: Account | None) -> str | None:
 
 def process_post(session: Session, post: ParsedPost,
                  account: Account | None) -> Outcome:
+    """Public entry: runs the pipeline and records the terminal step for the
+    live flowchart."""
+    from . import live_state
+    outcome = _process_post(session, post, account)
+    live_state.record(session, outcome.status, outcome.reason,
+                      target=post.author_handle, post_x_id=post.x_post_id,
+                      draft_id=outcome.draft_id,
+                      ok=outcome.status not in ("discarded",))
+    return outcome
+
+
+def _process_post(session: Session, post: ParsedPost,
+                  account: Account | None) -> Outcome:
+    from . import live_state
     mode = account.mode if account else "assisted"
     auto = mode == "auto"
 
@@ -117,6 +131,8 @@ def process_post(session: Session, post: ParsedPost,
     context = _fetch_context(post)
 
     # --- persona -------------------------------------------------------
+    live_state.record(session, "drafting", f"writing a reply to @{post.author_handle}",
+                      target=post.author_handle, post_x_id=post.x_post_id)
     result = persona.generate(session, _with_context(post.text, context),
                               account.handle if account else "", auto=auto)
 

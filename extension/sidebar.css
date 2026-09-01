@@ -1,15 +1,40 @@
-#quill-sidebar {
-  position: fixed; top: 64px; right: 12px; width: 300px; max-height: 70vh;
-  overflow-y: auto; z-index: 99999; font-family: system-ui, sans-serif;
-  background: #fff; color: #16202e; border: 1px solid #c7d0db; border-radius: 8px;
-  box-shadow: none; font-size: 13px;
+/* Quill inline suggestions on x.com — sits under each tweet. Kept quiet so it
+   reads as part of the app, not a banner. */
+.quill-suggest {
+  margin: 6px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(29, 155, 240, 0.35);
+  border-left: 3px solid #1d9bf0;
+  border-radius: 12px;
+  background: rgba(29, 155, 240, 0.06);
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
 }
-@media (prefers-color-scheme: dark) {
-  #quill-sidebar { background: #16202e; color: #e6ecf3; border-color: #2a3644; }
+.quill-suggest.done { opacity: 0.55; }
+.quill-s-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: #1d9bf0; margin-bottom: 5px;
 }
-.quill-head { padding: 8px 10px; font-weight: 700; border-bottom: 1px solid #c7d0db; }
-.quill-card { padding: 8px 10px; border-bottom: 1px solid #eef1f5; }
-.quill-meta { font-size: 11px; color: #5c6a7c; font-family: monospace; }
-.quill-text { margin: 4px 0; line-height: 1.4; }
-.quill-approve { background: #1f5c75; color: #fff; border: 0; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
-.quill-empty, .quill-foot { padding: 10px; color: #5c6a7c; font-size: 12px; }
+.quill-dot { width: 7px; height: 7px; border-radius: 50%; background: #1d9bf0; }
+.quill-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  padding: 1px 6px; border-radius: 999px; background: rgba(120,130,140,.18); color: #5b7083;
+}
+.quill-badge.auto { background: rgba(0,186,124,.18); color: #00ba7c; }
+.quill-s-text { font-size: 14.5px; line-height: 1.4; color: #0f1419; white-space: pre-wrap; }
+@media (prefers-color-scheme: dark) { .quill-s-text { color: #e7e9ea; } }
+.quill-s-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.quill-btn {
+  border: 0; border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 700;
+  cursor: pointer; background: #1d9bf0; color: #fff;
+}
+.quill-btn.quill-edit { background: transparent; color: #1d9bf0; border: 1px solid rgba(29,155,240,.5); }
+.quill-btn:hover { filter: brightness(1.05); }
+.quill-s-status { font-size: 12px; color: #5b7083; margin-left: 2px; }
+
+#quill-pill {
+  position: fixed; bottom: 16px; right: 16px; z-index: 99999;
+  background: #0f1419; color: #fff; font-size: 12px; font-weight: 600;
+  padding: 7px 12px; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+  font-family: -apple-system, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { #quill-pill { background: #1d9bf0; } }

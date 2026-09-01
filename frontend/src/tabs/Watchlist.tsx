@@ -47,6 +47,16 @@ export function Watchlist() {
     onError: (e) => reportError(e, "Could not remove that account"),
   });
 
+  const importFollowing = useMutation({
+    mutationFn: () => api.post("/api/accounts/import-following"),
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      toast({ tone: "success", title: "Following imported",
+        detail: `${d.added.length} added · ${d.auto.length} on auto · ${d.total} watched total.` });
+    },
+    onError: (e) => reportError(e, "Could not import following"),
+  });
+
   async function changeMode(a: any, mode: string) {
     if (mode === a.mode) return;
     if (mode === "auto") {
@@ -103,6 +113,15 @@ export function Watchlist() {
             Watch
           </Button>
         </form>
+        <div className="mt-3 pt-3 border-t border-rule flex items-center gap-2 flex-wrap">
+          <Button variant="default" loading={importFollowing.isPending}
+            onClick={() => importFollowing.mutate()}>
+            Import everyone I follow
+          </Button>
+          <span className="text-[12px] text-faint">
+            Adds all follows as assisted, promotes a random 10 to auto.
+          </span>
+        </div>
       </Card>
 
       {accts.isPending ? (

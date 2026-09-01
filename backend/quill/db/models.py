@@ -192,6 +192,7 @@ class GovernorDay(SQLModel, table=True):
     date: str = Field(primary_key=True)   # YYYY-MM-DD local
     replies_assisted: int = 0
     replies_auto: int = 0
+    replies_foryou: int = 0
     posts: int = 0
     threads: int = 0
     reads: int = 0                        # read budget (I-06)
@@ -248,3 +249,17 @@ class IdeaNote(SQLModel, table=True):
     text: str = ""
     created_at: datetime = Field(default_factory=utcnow)
     promoted: bool = False
+
+
+class Activity(SQLModel, table=True):
+    """Live pipeline step, for the real-time flowchart. Written by whichever
+    process runs the pipeline; read by the dashboard."""
+    __tablename__ = "activity"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    at: datetime = Field(default_factory=utcnow, index=True)
+    stage: str = ""            # watching|scoring|drafting|reviewing|queued|sending|sent|discarded|silent|idle
+    detail: str = ""
+    target: str = ""           # a handle
+    post_x_id: str = ""
+    draft_id: Optional[int] = None
+    ok: bool = True

@@ -9,6 +9,8 @@ from ...db.engine import get_session
 from ...learning import feedback
 from ...persona import engine as persona
 from ...persona.corpus import corpus_size, import_samples, parse_archive
+from ...persona.playbook import (DEFAULT_SKILLS, EXAMPLE_TWEETS, SKILL_LABELS,
+                                 load_skills, save_skills)
 from ...persona.voicecard import load_voice_card, save_voice_card
 from ..auth import require_auth
 
@@ -19,7 +21,46 @@ router = APIRouter(prefix="/api/persona", tags=["persona"])
 def get_persona(session: Session = Depends(get_session), _=Depends(require_auth)):
     return {"voice_card": load_voice_card(session),
             "corpus_size": corpus_size(session),
+            "skills": load_skills(session),
+            "skill_labels": SKILL_LABELS,
+            "skill_defaults": DEFAULT_SKILLS,
             "learning": feedback.sample_counts(session)}
+
+
+class SkillsBody(BaseModel):
+    skills: dict
+
+
+@router.get("/skills")
+def get_skills(session: Session = Depends(get_session), _=Depends(require_auth)):
+    return {"skills": load_skills(session), "labels": SKILL_LABELS,
+            "defaults": DEFAULT_SKILLS}
+
+
+@router.put("/skills")
+def put_skills(body: SkillsBody, session: Session = Depends(get_session),
+               _=Depends(require_auth)):
+    return {"skills": save_skills(session, body.skills)}
+
+
+@router.get("/examples")
+def list_examples(_=Depends(require_auth)):
+    """The 10 showcase posts (no replies yet — generated on demand)."""
+    return {"examples": EXAMPLE_TWEETS}
+
+
+@router.post("/examples/generate")
+def generate_examples(session: Session = Depends(get_session), _=Depends(require_auth)):
+    """Generate Quill's reply for each showcase post with the CURRENT skills.
+    Runs the live model; can take a bit with a big model."""
+    out = []
+    for ex in EXAMPLE_TWEETS:
+        try:
+            reply = persona.quick_reply(session, ex["text"])
+        except Exception as e:  # never fail the whole batch on one bad draft
+            reply = f"(generation failed: {e})"
+        out.append({**ex, "reply": reply})
+    return {"examples": out, "skills": load_skills(session)}
 
 
 class VoiceCardBody(BaseModel):

@@ -15,7 +15,8 @@ from ..governor.governor import GovernorRefusal
 from ..logging_setup import get_logger, setup_logging
 from .routes import (accounts, analytics_routes, auth_routes, autopilot,
                      extension_routes, governor_routes, launch_routes,
-                     notify_routes, ops_routes, persona_routes, studio)
+                     live_routes, notify_routes, ops_routes, persona_routes,
+                     studio)
 
 log = get_logger("quill.api")
 
@@ -44,7 +45,8 @@ def create_app(run_startup: bool = True) -> FastAPI:
               studio.router, persona_routes.router, analytics_routes.router,
               analytics_routes.export, governor_routes.router, ops_routes.router,
               ops_routes.events_router, notify_routes.router,
-              extension_routes.router, launch_routes.router):
+              extension_routes.router, launch_routes.router,
+              live_routes.router):
         app.include_router(r)
 
     # A governor refusal is the safeguard working, not a server fault. Without

@@ -12,10 +12,26 @@ _EMOJI = re.compile(
     "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF]")
 _HASHTAG = re.compile(r"#\w+")
 _LINK = re.compile(r"https?://")
+_DASH = re.compile(r"[—–]")   # em dash — / en dash – : the classic AI tell
+_MAX_CHARS = 240
 
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip().lower())
+
+
+def _repetitive(c: str) -> bool:
+    words = re.findall(r"[a-zA-Z']+", c.lower())
+    if len(words) < 8:
+        return False
+    if len(set(words)) / len(words) < 0.5:
+        return True
+    grams = [tuple(words[i:i + 3]) for i in range(len(words) - 2)]
+    if grams:
+        from collections import Counter
+        if Counter(grams).most_common(1)[0][1] >= 3:
+            return True
+    return False
 
 
 def prefilter(candidate: str, parent_text: str, voice_card: dict) -> tuple[bool, str]:
@@ -25,10 +41,22 @@ def prefilter(candidate: str, parent_text: str, voice_card: dict) -> tuple[bool,
     if not cl:
         return False, "empty"
 
-    # lone-emoji / emoji-string reply
+    # too long / repetitive (the degenerate-loop glitch) — hard reject
+    if len(c) > _MAX_CHARS:
+        return False, f"too long ({len(c)} chars)"
+    if _repetitive(c):
+        return False, "repetitive / degenerate output"
+
+    # em/en dash is the single most recognisable AI-typing tell
+    if _DASH.search(c):
+        return False, "contains em/en dash"
+
+    # no emoji at all — the voice card forbids them, and they read as AI-cheery
     stripped = _EMOJI.sub("", c).strip()
     if not stripped:
         return False, "emoji-only reply"
+    if _EMOJI.search(c):
+        return False, "contains emoji"
 
     # links + hashtags never allowed (also Y-02)
     if _LINK.search(c):

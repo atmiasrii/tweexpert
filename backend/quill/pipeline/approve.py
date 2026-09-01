@@ -45,13 +45,37 @@ def approve_draft(session: Session, draft_id: int, text: str | None = None) -> d
         feedback.record_edit(session, draft, before, final)
     feedback.record_approve(session, draft, final)
 
+    parent = session.get(Post, draft.parent_post_id) if draft.parent_post_id else None
+    target = parent.x_post_id if parent else ""
+    kind = draft.kind if draft.kind in ("reply", "publish", "thread") else "reply"
+
+    # Extension is the default sender: mark the draft READY (with its permalink)
+    # and let the extension post it in the real session — the operator's approvals
+    # actually go out even when the Playwright engine is stopped. The extension
+    # issues the governor-gated authorization at send time via /api/ext/authorize.
+    from ..db.settings_store import get_setting
+    if get_setting(session, "sender", "extension") == "extension":
+        draft.status = "ready"
+        session.add(draft)
+        session.commit()
+        if parent:
+            discovery.record_engagement(session, parent.author_handle)
+        from . import live_state as _ls
+        _ls.record(session, "queued", f"ready to send to @{parent.author_handle if parent else '?'}",
+                   target=parent.author_handle if parent else "", draft_id=draft.id)
+        log.info("draft %s approved -> ready for extension", draft_id)
+        return {"draft_id": draft_id, "status": "ready",
+                "permalink": parent.url if parent else "",
+                "author": parent.author_handle if parent else ""}
+
     # human authorization (Y-01) — identical to policy path from here on
     authz = issue(session, draft.id, issuer="human",
                   mode=draft.mode_at_creation, reasons=["operator approved"])
 
-    parent = session.get(Post, draft.parent_post_id) if draft.parent_post_id else None
-    target = parent.x_post_id if parent else ""
-    kind = draft.kind if draft.kind in ("reply", "publish", "thread") else "reply"
+    from . import live_state
+    live_state.record(session, "sending",
+                      f"sending your reply to @{parent.author_handle if parent else '?'}",
+                      target=parent.author_handle if parent else "", draft_id=draft.id)
 
     from ..ops.launcher import writes_deferred
     if writes_deferred(session):
@@ -71,6 +95,10 @@ def approve_draft(session: Session, draft_id: int, text: str | None = None) -> d
                                     issuer="human", draft_id=draft.id)
     if parent:
         discovery.record_engagement(session, parent.author_handle)
+    live_state.record(session, "sent",
+                      f"replied to @{parent.author_handle if parent else '?'}",
+                      target=parent.author_handle if parent else "",
+                      post_x_id=action.x_post_id, draft_id=draft.id)
     log.info("draft %s approved -> %s", draft_id, action.x_post_id)
     return {"draft_id": draft_id, "x_post_id": action.x_post_id,
             "action_id": action.id}
