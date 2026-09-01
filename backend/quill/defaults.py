@@ -46,7 +46,14 @@ POLL_INTERVAL_TIER = {"A": 8 * 60, "B": 25 * 60, "C": 90 * 60}
 POLL_JITTER_FRAC = 0.30
 
 # --- Read budget (I-06) ------------------------------------------------
-DAILY_READ_BUDGET = 400
+# Raised from 400: a 20-account watchlist plus a For You scan every 5 minutes
+# burned the old budget by midday and idled the watcher.
+DAILY_READ_BUDGET = 1500
+
+# --- For You auto-replies (own daily cap) ------------------------------
+# Kept so assisted + auto + foryou stays under ~50/day, the point where reply
+# volume starts tripping X's spam heuristics.
+CAP_REPLIES_FORYOU = 30
 
 # --- Thread context (I-04) ---------------------------------------------
 THREAD_CONTEXT_DEPTH = 3
@@ -134,10 +141,46 @@ TELL_LIST = [
     "navigating the",
     "ever-evolving",
     "the bottom line",
+    # puffery + weasel attribution + faux insight
+    "pivotal",
+    "vibrant",
+    "landscape",
+    "experts agree",
+    "studies show",
+    "research shows",
+    "what nobody tells you",
+    "the part everyone misses",
+    "nobody talks about",
+    "nobody is talking about",
+    "it's already here",
+    "is already here",
+    "the future isn't coming",
+    "game changing",
+    "game-changing",
+    "revolutionary",
+    "unlock",
+    "supercharge",
+    "secret sauce",
+    "hits different",
+    "kudos",
+    "context matters",
+    "worth unpacking",
+    "happens to the best of us",
+    "must-have",
+    "food for thought",
 ]
 
 # --- Openers that read as bots (P-04) ----------------------------------
-BANNED_OPENERS = ["honestly,", "honestly ", "not gonna lie", "hot take:"]
+BANNED_OPENERS = ["honestly,", "honestly ", "not gonna lie", "hot take:",
+                  "certainly", "moreover", "additionally", "furthermore",
+                  "great ", "love this", "well said", "agreed.", "agreed!",
+                  "exactly.", "exactly!", "this is so"]
+
+# --- Compliment-only replies (worst archetype: zero reply-back value) ---
+COMPLIMENT_WORDS = ["great", "love", "amazing", "awesome", "nice", "agreed",
+                    "agree", "exactly", "facts", "based", "fire", "banger",
+                    "brilliant", "well said", "so good", "this", "true",
+                    "respect", "congrats", "huge", "incredible", "goat"]
 
 # --- Content-safety blocked topics for R-04 default --------------------
 DEFAULT_BLOCK_TOPICS = [

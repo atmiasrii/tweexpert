@@ -12,7 +12,7 @@ from .critic import critique
 from .llm import LLM
 from .playbook import (ARCHETYPES, VIRAL_SYSTEM, build_examples_block,
                        load_skills, skill_directive)
-from .prefilter import prefilter
+from .prefilter import _MAX_CHARS, prefilter
 from .similarity import similarity_hit
 from .voicecard import load_voice_card, voice_card_prompt
 
@@ -78,7 +78,6 @@ def _draft_one(llm: LLM, system: str, source: str, angle_name: str,
 
 
 import re as _re
-_MAX_CHARS = 240
 
 
 def _clean(text: str) -> str:
@@ -168,21 +167,43 @@ def _looks_english(text: str) -> bool:
     return latin / len(letters) >= 0.85
 
 
-def quick_reply(session: Session, source_post: str, archetype: str = "sharp take") -> str:
+def pick_archetype(source_post: str, skills: dict) -> str:
+    """Deterministic per-post archetype so the fast path spreads across the
+    mix instead of asking a question every time. Weights follow the research
+    ladder (questions ~30%, receipts most, wit least) and bend with the dials."""
+    import zlib
+    w = {
+        "question": 25 + int(skills.get("curious", 60)) * 0.25,
+        "receipt": 30 + int(skills.get("insightful", 85)) * 0.1,
+        "pushback": 10 + int(skills.get("contrarian", 55)) * 0.2,
+        "dry wit": 5 + (int(skills.get("witty", 55)) + int(skills.get("funny", 40))) * 0.1,
+    }
+    total = sum(w.values())
+    r = (zlib.crc32(source_post.encode("utf-8")) % 10_000) / 10_000 * total
+    for name, weight in w.items():
+        r -= weight
+        if r <= 0:
+            return name
+    return "receipt"
+
+
+def quick_reply(session: Session, source_post: str, archetype: str | None = None) -> str:
     """One reply, fast — for the showcase cards and the extension live feed. Uses
-    the current skills and the strongest archetype; skips the critic loop to stay
+    the current skills and a per-post archetype; skips the critic loop to stay
     responsive, but keeps the deterministic prefilter + an English-only guard."""
     voice = load_voice_card(session)
     skills = load_skills(session)
     fewshot = retrieve_fewshot(session, source_post)
     system = _system_prompt(voice_card_prompt(voice), fewshot, skills)
     llm = LLM()
-    for name, desc in [(archetype, dict(ARCHETYPES).get(archetype, ARCHETYPES[0][1])),
-                       ("witty", dict(ARCHETYPES)["witty"]),
-                       ("sharp take", dict(ARCHETYPES)["sharp take"])]:
+    arche = dict(ARCHETYPES)
+    first = archetype if archetype in arche else pick_archetype(source_post, skills)
+    order = [first] + [n for n, _ in ARCHETYPES[:3] if n != first]
+    for name in order:
+        desc = arche[name]
         text = _draft_one(llm, system, source_post, name, desc,
-                          reasons="" if name == archetype
-                          else "reply must be one short line, in English, no repetition, no dashes")
+                          reasons="" if name == first
+                          else "reply must be 80-180 characters, in English, no repetition, no dashes")
         ok, _ = prefilter(text, source_post, voice)
         if ok and _looks_english(text) and not is_degenerate(text):
             return text

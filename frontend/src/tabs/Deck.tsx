@@ -141,7 +141,7 @@ function ForYouAuto() {
         </select>
       </div>
       <div className="text-[11.5px] text-faint">
-        sent today: <span className="num">{c.sent_today ?? 0}</span>/{c.cap ?? 40} ·
+        sent today: <span className="num">{c.sent_today ?? 0}</span>/{c.cap ?? 30} ·
         replies still space out ~9 min apart to stay safe
       </div>
       {on && c.foryou_mode === "auto" && (

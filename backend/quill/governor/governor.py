@@ -13,7 +13,8 @@ from ..config import get_settings
 from ..db.models import Action, GovernorDay
 from ..db.settings_store import get_setting
 from ..defaults import (BURST_MAX_WRITES, BURST_WINDOW_S, CAP_POSTS,
-                        CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO, CAP_THREADS,
+                        CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO, CAP_REPLIES_FORYOU,
+                        CAP_THREADS,
                         AUTO_DELAY_MAX_S, AUTO_DELAY_MIN_S, MIN_WRITE_SPACING_S,
                         QUIET_DRIFT_MIN, QUIET_END, QUIET_START,
                         WRITE_JITTER_FRAC)
@@ -94,7 +95,7 @@ def in_quiet_hours(session: Session, at: datetime | None = None) -> bool:
 def _cap_for(session: Session, kind: str, mode: str) -> tuple[int, str]:
     if kind in ("reply",):
         if mode == "foryou":
-            return get_setting(session, "foryou_daily_cap", 40), "replies_foryou"
+            return get_setting(session, "foryou_daily_cap", CAP_REPLIES_FORYOU), "replies_foryou"
         if mode == "auto":
             return get_setting(session, "cap_replies_auto", CAP_REPLIES_AUTO), "replies_auto"
         return get_setting(session, "cap_replies_assisted", CAP_REPLIES_ASSISTED), "replies_assisted"

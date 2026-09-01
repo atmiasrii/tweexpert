@@ -226,8 +226,8 @@ function Playground() {
       <Textarea value={tweet} onChange={(e) => setTweet(e.target.value)} rows={3}
         placeholder="Paste any tweet and see how Quill would answer it…" className="tweet" aria-label="Tweet to reply to" />
       <Button variant="default" icon={<IconSpark size={14} />} loading={preview.isPending}
-        disabled={!tweet.trim()} onClick={() => preview.mutate()}>Generate three</Button>
-      {preview.isPending && <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div>}
+        disabled={!tweet.trim()} onClick={() => preview.mutate()}>Generate replies</Button>
+      {preview.isPending && <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14" />)}</div>}
       {cands.length > 0 && (
         <div className="space-y-2">
           {cands.map((c, i) => (

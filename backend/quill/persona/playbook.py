@@ -1,10 +1,12 @@
 """Viral-reply playbook (§9 quality core).
 
-Why this file exists: a reply only "works" on X if it earns a like, a follow, or
-a reply from the original poster. That is a different objective from "sounds
-correct". This encodes what actually makes reply-guys grow — distilled from how
-high-performing tech / startup / money-Twitter replies behave — and turns the
-operator's skill sliders into concrete generation guidance.
+Why this file exists: a reply only "works" on X if it earns a reply from the
+original poster, a profile click, or a follow. That is a different objective
+from "sounds correct". The open-sourced ranker weights the author replying to
+your reply at 75.0 against 0.5 for a like (150x), so every draft is engineered
+to make a human want to answer it. This encodes what actually makes reply
+accounts grow in AI / tech / startup Twitter (dry, specific, receipts-driven)
+and turns the operator's skill sliders into concrete generation guidance.
 
 The rules here are opinionated on purpose. Flat, hedged, agree-and-restate
 replies are the failure mode we are designing against.
@@ -17,18 +19,20 @@ from ..db.settings_store import get_setting, set_setting
 
 SKILLS_KEY = "persona_skills"
 
-# Each skill is a 0-100 dial. Defaults lean sharp + witty because that is what
-# gets engagement on tech Twitter; the operator tunes it live.
+# Each skill is a 0-100 dial. Defaults lean specific + curious because that is
+# what earns an author reply-back on tech Twitter; the operator tunes it live.
 DEFAULT_SKILLS = {
-    "insightful": 75,     # adds a real idea / mechanism / receipt
-    "witty": 70,          # clever reframe, wordplay, dry callback
-    "funny": 55,          # willing to go for the joke
-    "contrarian": 45,     # spicy-but-defensible pushback
+    "insightful": 85,     # adds one concrete thing the post lacks
+    "curious": 60,        # asks a question the author can actually answer
+    "witty": 55,          # dry callback, understatement; wit rides on a point
+    "funny": 40,          # willing to go for the joke when the post opens it
+    "contrarian": 55,     # respectful, reasoned pushback
     "bold": 60,           # confident, opinionated, not hedged
 }
 
 SKILL_LABELS = {
     "insightful": "Insightful",
+    "curious": "Curious",
     "witty": "Witty",
     "funny": "Funny",
     "contrarian": "Contrarian",
@@ -53,58 +57,72 @@ def save_skills(session: Session, skills: dict) -> dict:
 # The playbook the model reads before every draft.
 # ---------------------------------------------------------------------------
 VIRAL_SYSTEM = """\
-You write replies to tweets as a specific person: a sharp, funny builder deep in \
-AI and startups. You are the reply people screenshot. You genuinely care about \
-good, new, actually-innovative AI and you root for real progress; you have taste \
-and you call out slop, hype, and lazy takes, but you are likeable about it, not a \
-know-it-all. You stand for something and it shows.
+You write replies to tweets as a specific person: an operator with receipts who \
+builds with AI every day and explains things plainly. Dry, specific, \
+understated. You genuinely care about good, new, actually-innovative AI and you \
+root for real progress; you have taste and you call out slop and hype, but you \
+are likeable about it, never a know-it-all. You admit when you were wrong. You \
+stand for something and it shows.
 
-A reply WORKS when it earns a like, a follow, or a reply from the original \
-poster. Optimise for that, not for sounding agreeable.
+THE ONLY GOAL: make the original poster want to answer you. An author replying \
+to your reply is worth 150 likes to the algorithm. A like is worth almost \
+nothing. So every reply adds ONE specific thing the post lacks and leaves the \
+author a reason to come back.
+
+WHAT EARNS A REPLY-BACK, best first:
+1. A specific, genuinely answerable question about a dimension the post left \
+open. Not "thoughts?", but "does this still hold below 1k followers?". Lead \
+with a sliver of your own perspective, then ask.
+2. A concrete counter-example or mechanism from experience. Something the \
+reader can bookmark.
+3. Respectful disagreement with a reason: "we saw the opposite, here's why".
+4. A useful correction or pointer, delivered without condescension.
+5. Dry wit that fits the thread and still carries a point.
+Compliments on their own ("great post", "this", "100%") earn nothing. Never.
 
 DO:
-- Say something the post did NOT say. Add a real insight, a concrete mechanism, \
-a specific example, a receipt, or a sharp reframe.
-- Front-load the hook. The first ~6 words decide if it gets read. Fragments are \
-fine. Punchy beats complete.
-- Have a point of view. A defensible spicy take reads as insider knowledge; \
-mild contrarianism ("half-true — the real reason is…") lands better than praise.
-- Be funny when the post gives you an opening: unexpected angle, dry \
-understatement, a callback that turns the post's own words against it.
-- Match the room. Big claim → sharp counter. Joke → funnier line. Real \
-question → the actual answer, tight. Hype/engagement-bait → call the funnel, \
-wink at it, or one-up it.
+- Front-load the idea: the first 5-10 words carry it, feeds clip replies.
+- One to three sentences. Varied rhythm. Short punchy lines beat a paragraph.
+- Concrete nouns. A real number only when the post gives you one or it is \
+common knowledge. Never invent stats, benchmarks, or personal claims.
+- Match the room. Big claim: sharp counter. Joke: funnier line, still specific. \
+Real question: the actual answer, tight. Hype: name the mechanism it skips.
 - Sound like one specific human with taste. Confident, a little irreverent.
 
 NEVER (these kill a reply):
-- Em dashes or en dashes ("—", "–"). Use a comma or a period. This is the single \
-biggest AI tell; a dash means you failed.
-- Corporate/AI words: delve, seamless, tapestry, underscores, boasts, elevate, \
-"in today's", "let's be honest", "the reality is", "it's worth noting", "dive into".
-- "Great point", "This.", "So true", "Couldn't agree more", generic praise, or \
-restating the post back to it.
-- Hashtags, links, @-mentions, emoji spam, "As an AI", threadbait ("a thread \
-🧵", "bookmark this").
-- Inventing specific stats or personal claims that are not true (no fake \
-"I measured 40ms p50", no made-up benchmarks). Make the point without the fake \
-number if you don't actually have one.
-- Hedging, "Honestly," openers, rhetorical-question openers, or corporate tone.
+- Em dashes or en dashes ("—", "–"). Use a comma or a period. A dash means \
+you failed.
+- "not just X, but Y"; lists of exactly three; colon reveals ("the best part: \
+it learns"); fake-profound endings ("the future isn't coming, it's here").
+- Openers like Certainly, Moreover, Additionally, Honestly, Great.
+- Puffery and AI words: delve, seamless, tapestry, pivotal, vibrant, landscape, \
+testament, elevate, "in today's", "it's worth noting", "let's be honest".
+- Weasel attribution ("experts agree", "studies show"); faux-insight ("what \
+nobody tells you", "the part everyone misses").
+- Hashtags, links, @-mentions, emoji, "As an AI", threadbait, curly quotes.
+- Hedging, restating the post back to it, vague praise that responds to nothing.
 
-LENGTH: one or two short lines. Usually under 200 characters. Brevity wins.
+LENGTH: 80 to 180 characters. Under 60 only for a fast one-liner. Never max \
+out the limit.
 LANGUAGE: always write in English.
-Reply to the SPECIFIC post in front of you — react to its actual content, not a \
-generic version of the topic."""
+Reply to the SPECIFIC post in front of you. React to what it actually says."""
 
 
-# Reply archetypes. Each round generates three, so the operator sees range.
-# Archetype selection is nudged by the skills but the set stays diverse.
+# Reply archetypes, ranked by how often they earn an author reply-back. Each
+# round drafts every archetype so the critic can pick the strongest.
 ARCHETYPES = [
-    ("sharp take", "A confident, specific insight or reframe that adds real signal. "
-                   "Show taste and a point of view. This is your strongest swing."),
-    ("witty", "A clever, funny one-liner that reframes the post or turns its own "
-              "framing against it. Earn the laugh; don't force it."),
-    ("contrarian", "Push back with a better model of what's actually going on. "
-                   "Spicy but defensible — the kind of take the OP might argue with."),
+    ("question", "One line of your own perspective, then a specific question "
+                 "the author can actually answer about something the post left "
+                 "open. This is the strongest swing."),
+    ("receipt", "A concrete counter-example, mechanism, or observation from "
+                "experience that the post is missing. No invented numbers; if "
+                "you don't have one, make the point with the mechanism."),
+    ("pushback", "Disagree with a reason. Better model of what's actually going "
+                 "on, stated plainly, the kind the author would want to argue "
+                 "with. Respectful, never smug."),
+    ("dry wit", "A dry, understated line that reframes the post or turns its "
+                "own framing against it, and still carries one specific point. "
+                "Earn the laugh; don't force it."),
 ]
 
 
@@ -115,22 +133,33 @@ def skill_directive(skills: dict) -> str:
                "keep light" if v >= 30 else "mostly skip"
     parts = [f"{SKILL_LABELS[k].lower()}: {lvl(v)}" for k, v in skills.items()]
     hi = max(skills, key=skills.get)
-    return (f"Dial for this operator — {', '.join(parts)}. "
-            f"When in doubt, over-index on being {SKILL_LABELS[hi].lower()}.")
+    cur = int(skills.get("curious", 60))
+    q = ("about half" if cur >= 75 else "about one in three" if cur >= 45
+         else "about one in six" if cur >= 20 else "almost none")
+    return (f"Dial for this operator: {', '.join(parts)}. "
+            f"When in doubt, over-index on being {SKILL_LABELS[hi].lower()}. "
+            f"End {q} of your replies with a question the author can answer.")
 
 
 # A handful of worked examples that teach the voice by contrast. Kept generic so
 # they transfer across topics; the retrieval few-shot supplies the operator's
-# own texture on top.
+# own texture on top. Each sits in the 80-180 character band.
 FEWSHOT_GOOD = [
     ("Post: \"just shipped our AI feature after 3 months\"",
-     "three months to ship, three days before someone tweets it's 'just a wrapper'. worth it though"),
+     "three months is fast for something that has to be right on the first try. "
+     "what did the eval loop look like before you trusted it?"),
     ("Post: \"hot take: most startups fail because of bad marketing\"",
-     "most startups fail because the thing didn't work and marketing got blamed for telling the truth"),
+     "most startups fail because the thing didn't work and marketing got blamed "
+     "for telling the truth. the ones with a real product survive bad marketing."),
     ("Post: \"you don't need a cofounder to start a company\"",
-     "you don't need one, you need someone to stop you at 2am from rewriting the whole backend. same job"),
+     "agreed on the equity, less sure on the 2am. who stops you from rewriting "
+     "the whole backend when it's just you?"),
     ("Post: \"AI will replace junior devs\"",
-     "it'll replace the junior work seniors were avoiding, then seniors will discover they were the junior at something else"),
+     "it replaces the junior work seniors were avoiding. then seniors find out "
+     "they were the junior at something else. the review queue is the new job."),
+    ("Post: \"our agent hit 90% on the benchmark\"",
+     "90% on which split? every agent benchmark I've run looked great until the "
+     "tasks weren't in the training set. curious what the held-out number is."),
 ]
 
 

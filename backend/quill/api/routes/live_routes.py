@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from ...defaults import CAP_REPLIES_FORYOU
 from ...db.engine import get_session
 from ...db.models import Account
 from ...db.settings_store import get_setting
@@ -40,7 +41,7 @@ def foryou_config(session: Session = Depends(get_session), _=Depends(require_aut
     day = governor.get_day(session)
     return {**foryou_auto.config(session),
             "sent_today": day.replies_foryou,
-            "cap": get_setting(session, "foryou_daily_cap", 40),
+            "cap": get_setting(session, "foryou_daily_cap", CAP_REPLIES_FORYOU),
             "last_run": get_setting(session, foryou_auto.K_LAST_RUN, None)}
 
 

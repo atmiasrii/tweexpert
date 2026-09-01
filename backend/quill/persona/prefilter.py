@@ -5,15 +5,41 @@ from __future__ import annotations
 
 import re
 
-from ..defaults import BANNED_OPENERS, TELL_LIST
+from ..defaults import BANNED_OPENERS, COMPLIMENT_WORDS, TELL_LIST
 from .vectors import ngram_overlap
 
 _EMOJI = re.compile(
     "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF]")
 _HASHTAG = re.compile(r"#\w+")
 _LINK = re.compile(r"https?://")
+_MENTION = re.compile(r"(^|\s)@\w+")
 _DASH = re.compile(r"[—–]")   # em dash — / en dash – : the classic AI tell
-_MAX_CHARS = 240
+_CURLY = re.compile(r"[“”‘’]")
+# "the best part: it learns" style reveal; a colon followed by a short clause
+_COLON_REVEAL = re.compile(r"\b(the )?(best|worst|real|hard|fun|crazy|wild|scary) "
+                           r"(part|thing|bit|truth|kicker)\s*:", re.I)
+# maxed-out replies underperform; 180-220 is the mini-essay ceiling
+_MAX_CHARS = 220
+_COMPLIMENT_MAX = 60
+
+
+def _compliment_only(cl: str) -> bool:
+    """Short reply that is nothing but praise: no question, no content words
+    beyond the compliment vocabulary."""
+    if len(cl) > _COMPLIMENT_MAX or "?" in cl:
+        return False
+    words = re.findall(r"[a-z']+", cl)
+    if not words:
+        return False
+    filler = {"i", "so", "this", "is", "a", "the", "it", "and", "to", "of", "you",
+              "your", "that", "just", "really", "very", "such", "what", "one",
+              "an", "with", "for", "man", "bro", "lol", "haha", "omg", "wow"}
+    content = [w for w in words if w not in filler]
+    if not content:
+        return True
+    praise = sum(1 for w in content if any(w.startswith(p.split()[0])
+                                            for p in COMPLIMENT_WORDS))
+    return praise >= max(1, len(content) - 1)
 
 
 def _norm(s: str) -> str:
@@ -50,6 +76,20 @@ def prefilter(candidate: str, parent_text: str, voice_card: dict) -> tuple[bool,
     # em/en dash is the single most recognisable AI-typing tell
     if _DASH.search(c):
         return False, "contains em/en dash"
+    if _CURLY.search(c):
+        return False, "curly quotes"
+
+    # praise with nothing in it earns no reply-back; worst archetype
+    if _compliment_only(cl):
+        return False, "compliment-only reply"
+
+    # "the best part: it learns"
+    if _COLON_REVEAL.search(c):
+        return False, "colon reveal"
+
+    # @-mentions are automatic on replies and read as tagging spam in the body
+    if _MENTION.search(c):
+        return False, "contains @-mention"
 
     # no emoji at all — the voice card forbids them, and they read as AI-cheery
     stripped = _EMOJI.sub("", c).strip()
