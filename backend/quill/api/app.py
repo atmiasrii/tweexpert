@@ -69,9 +69,11 @@ def create_app(run_startup: bool = True) -> FastAPI:
             init_db()
             _warn_if_public(s)
             from ..ops.reconcile import startup_reconcile
-            from ..api.auth import ensure_operator
+            from ..api.auth import ensure_operator, sync_login_password
             with session_scope() as sess:
                 ensure_operator(sess)
+                if sync_login_password(sess):
+                    log.info("login password updated from .env")
                 startup_reconcile(sess)          # O-03
             log.info("Quill API started (engine=%s)", s.browser_engine)
 

@@ -16,13 +16,21 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 class Settings(BaseSettings):
+    # env_file is resolved against the working directory, so a bare ".env"
+    # silently loads nothing when the process starts from anywhere but the
+    # repo root. Pin it to the repo so every entry point sees the same config.
     model_config = SettingsConfigDict(
-        env_prefix="QUILL_", env_file=".env", extra="ignore"
+        env_prefix="QUILL_", env_file=(REPO_ROOT / ".env", ".env"),
+        extra="ignore"
     )
 
     # --- identity -------------------------------------------------------
     operator_handle: str = "barryallendgx"
     operator_timezone: str = "Asia/Kolkata"
+
+    # Login password. Declared so .env is actually read for it; None means
+    # "not configured", which leaves whatever is already stored alone.
+    login_password: str | None = None
 
     # --- storage --------------------------------------------------------
     data_dir: Path = DATA_DIR

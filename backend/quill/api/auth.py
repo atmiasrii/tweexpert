@@ -31,13 +31,33 @@ def _serializer() -> URLSafeSerializer:
 
 
 def ensure_operator(session: Session) -> None:
-    """First-run: seed a password hash if none exists (from env or default)."""
+    """First-run: seed a password hash if none exists (from .env or default)."""
     if get_setting(session, "password_hash") is None:
-        s = get_settings()
-        import os
-        pw = os.environ.get("QUILL_LOGIN_PASSWORD", "quill-dev-password")
+        pw = get_settings().login_password or "quill-dev-password"
         set_setting(session, "password_hash", hash_password(pw))
         set_setting(session, "totp_enrolled", False)
+
+
+def sync_login_password(session: Session) -> bool:
+    """Make QUILL_LOGIN_PASSWORD in .env the source of truth, applied at startup.
+
+    Without this, the password is hashed into the settings table on first run
+    and every later edit of .env is silently ignored: the operator changes the
+    file, restarts, and is told the credentials are invalid. There is no
+    change-password flow anywhere else, so the file is the only way to set one.
+
+    Only ever acts when the value is explicitly configured, so an unset or
+    removed variable can never reset a working password to the default.
+    Returns True when the stored hash was replaced.
+    """
+    pw = get_settings().login_password
+    if not pw:
+        return False
+    stored = get_setting(session, "password_hash")
+    if stored and verify_password(stored, pw):
+        return False
+    set_setting(session, "password_hash", hash_password(pw))
+    return True
 
 
 def do_login(session: Session, response: Response, ident: str,
