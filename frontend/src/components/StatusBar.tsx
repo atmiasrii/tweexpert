@@ -89,7 +89,7 @@ export function StatusBar({
 
         {/* Live state. Collapses progressively rather than wrapping. */}
         <div className="hidden xl:flex items-center gap-3 ml-4 shrink-0">
-          <Badge tone={g?.mode === "auto" ? "accent" : g?.mode === "assisted" ? "warn" : "neutral"}>
+          <Badge tone={g?.mode === "auto" ? "warn" : g?.mode === "assisted" ? "info" : "neutral"}>
             {g?.mode ?? "—"}
           </Badge>
           {u && (
@@ -165,7 +165,7 @@ export function StatusBar({
 
       {/* Everything the wide bar shows, folded into one line on small screens. */}
       <div className="lg:hidden px-3 sm:px-5 pb-2 flex items-center gap-3 overflow-x-auto">
-        <Badge tone={g?.mode === "auto" ? "accent" : g?.mode === "assisted" ? "warn" : "neutral"}>
+        <Badge tone={g?.mode === "auto" ? "warn" : g?.mode === "assisted" ? "info" : "neutral"}>
           {g?.mode ?? "—"}
         </Badge>
         {u && (

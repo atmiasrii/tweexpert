@@ -24,12 +24,20 @@
   --accent-ink: #ffffff;
   --accent-soft: #eef2ff;
 
+  /* Five meanings, five colours, used the same way everywhere:
+       warn  amber   needs you to do something
+       info  blue    happening now, nothing to do
+       go    green   worked / finished
+       risk  red     broke, or will act without you
+       muted grey    inert: skipped, expired, off  */
   --risk: #dc2626;
   --risk-soft: #fee2e2;
   --go: #16a34a;
   --go-soft: #dcfce7;
   --warn: #d97706;
   --warn-soft: #fef3c7;
+  --info: #0284c7;
+  --info-soft: #e0f2fe;
 
   /* Chart marks are their own tokens: validated against the chart surface for
      lightness, chroma and contrast, which is a different job from UI accent. */
@@ -71,6 +79,8 @@
   --go-soft: rgba(74, 222, 128, 0.14);
   --warn: #fbbf24;
   --warn-soft: rgba(251, 191, 36, 0.14);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.14);
 
   /* Dark is chosen, not an automatic flip: its own step from the same hue. */
   --chart-1: #818cf8;

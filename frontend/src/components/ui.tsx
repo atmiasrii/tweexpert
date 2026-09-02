@@ -99,7 +99,7 @@ export function IconButton({
 }
 
 /* ── Badge / status ───────────────────────────────────────── */
-type Tone = "neutral" | "accent" | "go" | "risk" | "warn";
+type Tone = "neutral" | "accent" | "go" | "risk" | "warn" | "info";
 
 const TONE_BG: Record<Tone, string> = {
   neutral: "bg-surface-2 text-muted border-rule",
@@ -107,6 +107,7 @@ const TONE_BG: Record<Tone, string> = {
   go: "bg-[color:var(--go-soft)] text-go border-transparent",
   risk: "bg-[color:var(--risk-soft)] text-risk border-transparent",
   warn: "bg-[color:var(--warn-soft)] text-warn border-transparent",
+  info: "bg-[color:var(--info-soft)] text-[color:var(--info)] border-transparent",
 };
 
 export function Badge({
@@ -131,6 +132,7 @@ const DOT_TONE: Record<Tone, string> = {
   go: "bg-[color:var(--go)]",
   risk: "bg-[color:var(--risk)]",
   warn: "bg-[color:var(--warn)]",
+  info: "bg-[color:var(--info)]",
 };
 
 /** Status dot + label. The dot carries no meaning alone — the label always says it. */
@@ -180,7 +182,7 @@ export function StatCard({
   label, value, sub, tone = "neutral", onClick, icon, loading,
 }: {
   label: string; value: React.ReactNode; sub?: React.ReactNode;
-  tone?: "neutral" | "accent" | "go" | "warn" | "risk";
+  tone?: Tone;
   onClick?: () => void; icon?: React.ReactNode; loading?: boolean;
 }) {
   const toneCls: Record<string, string> = {
@@ -189,6 +191,7 @@ export function StatCard({
     go: "text-go",
     warn: "text-warn",
     risk: "text-risk",
+    info: "text-[color:var(--info)]",
   };
   const Wrap: any = onClick ? "button" : "div";
   return (

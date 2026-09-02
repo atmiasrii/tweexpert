@@ -70,7 +70,7 @@ function Health() {
               really posting, so ask it rather than reporting our own engine. */}
           <span className="flex items-center gap-1.5 text-[13px]">
             Posting via
-            <Badge tone={liveEngine === "playwright" ? "accent" : "neutral"}>
+            <Badge tone={liveEngine === "playwright" ? "info" : "neutral"}>
               {liveEngine === "playwright" ? "your browser" : "offline practice data"}
             </Badge>
             <Help text="Whether Quill is acting on the real X or on offline sample data." />

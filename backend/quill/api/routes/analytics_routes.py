@@ -1,7 +1,7 @@
 """Analytics + learning exports (§15, §20)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlmodel import Session
 
@@ -21,6 +21,21 @@ def posts(session: Session = Depends(get_session), _=Depends(require_auth)):
 @router.get("/replies")
 def replies(session: Session = Depends(get_session), _=Depends(require_auth)):
     return analytics.reply_outcomes(session)
+
+
+@router.get("/sent")
+def sent(session: Session = Depends(get_session), _=Depends(require_auth)):
+    """Every reply Quill has put out, with where each one got to."""
+    return analytics.sent_replies(session)
+
+
+@router.get("/sent/{draft_id}")
+def sent_detail(draft_id: int, session: Session = Depends(get_session),
+                _=Depends(require_auth)):
+    try:
+        return analytics.reply_detail(session, draft_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
 
 
 @router.get("/scoreboard")

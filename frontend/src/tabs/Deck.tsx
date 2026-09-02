@@ -93,7 +93,7 @@ function Sent() {
       {rows.map((a) => (
         <div key={a.id} className="rounded-md border border-rule bg-surface-2/50 p-2.5">
           <div className="flex items-center gap-1.5 text-[12px]">
-            <Badge tone={a.issuer === "policy" ? "accent" : "go"}>{a.issuer === "policy" ? "auto" : "you"}</Badge>
+            <Badge tone={a.issuer === "policy" ? "warn" : "go"}>{a.issuer === "policy" ? "auto" : "you"}</Badge>
             {a.target && <span className="text-muted">→ @{a.target}</span>}
             <span className="ml-auto num text-[11px] text-faint">{when(a.created_at)}</span>
           </div>

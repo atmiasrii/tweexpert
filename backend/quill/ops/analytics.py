@@ -99,6 +99,151 @@ def reply_outcomes(session: Session) -> list[dict]:
     return [{"angle": a, **v} for a, v in by_angle.items()] or rows
 
 
+def _action_for_draft(session: Session, draft_id: int):
+    """The publish Action behind a draft, found through its authorization.
+
+    The draft row never stores the resulting post id, so the audit trail is the
+    only link between "we approved this text" and "this is where it landed".
+    """
+    from ..db.models import Action, Authorization
+    authz_ids = [a.id for a in session.exec(
+        select(Authorization).where(Authorization.draft_id == draft_id)).all()]
+    if not authz_ids:
+        return None
+    rows = session.exec(
+        select(Action).where(Action.kind == "reply",
+                             Action.authorization_id.in_(authz_ids))
+        .order_by(Action.created_at.desc())).all()
+    # Prefer one that actually produced a post id.
+    for a in rows:
+        if a.x_post_id:
+            return a
+    return rows[0] if rows else None
+
+
+def _samples(session: Session, x_post_id: str) -> list:
+    if not x_post_id:
+        return []
+    return session.exec(
+        select(MetricSample).where(MetricSample.x_post_id == x_post_id)
+        .order_by(MetricSample.at.asc())).all()
+
+
+def _stage(draft, action, samples) -> tuple[str, str]:
+    """Where this reply has got to, and one line of plain English for it."""
+    if draft.status == "dismissed":
+        return "skipped", "You skipped this one."
+    if draft.status == "queued":
+        return "waiting", "Waiting for you to approve or skip it."
+    if draft.status == "shadow":
+        return "practice", "Practice mode. This was never going to send."
+    if draft.status in ("approved", "ready") and not (action and action.x_post_id):
+        return "sending", "Approved. Waiting for your browser to post it."
+    if action and action.state == "failed":
+        return "failed", f"Posting failed: {action.error or 'unknown error'}"
+    if not (action and action.x_post_id):
+        return "sending", "Marked sent, but no post link was recorded."
+    if not samples:
+        return "posted", "Live on X. First measurement comes about an hour in."
+    if samples[-1].replies > 0:
+        return "answered", "Someone replied to it. That is the outcome worth having."
+    return "measured", "Live and measured. Nobody has replied under it yet."
+
+
+def sent_replies(session: Session, limit: int = 60) -> list[dict]:
+    """Every reply Quill has put out, newest first, with where each one got to."""
+    drafts = session.exec(
+        select(Draft).where(Draft.kind == "reply",
+                            Draft.status.in_(["sent", "approved", "ready"]))
+        .order_by(Draft.created_at.desc()).limit(limit)).all()
+    out = []
+    for d in drafts:
+        action = _action_for_draft(session, d.id)
+        xid = action.x_post_id if action else ""
+        samples = _samples(session, xid)
+        latest = samples[-1] if samples else None
+        parent = session.get(Post, d.parent_post_id) if d.parent_post_id else None
+        stage, note = _stage(d, action, samples)
+        cands = json.loads(d.candidates_json or "[]")
+        angle = (cands[d.chosen_index]["angle"]
+                 if cands and d.chosen_index < len(cands) else "")
+        out.append({
+            "draft_id": d.id,
+            "x_post_id": xid,
+            "text": d.final_text,
+            "stage": stage,
+            "note": note,
+            "angle": angle,
+            "mode": d.mode_at_creation,
+            "auto": d.mode_at_creation in ("auto", "foryou"),
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "sent_at": (action.finished_at or action.created_at).isoformat()
+                       if action and (action.finished_at or action.created_at) else None,
+            "to": parent.author_handle if parent else "",
+            "parent_text": parent.text if parent else "",
+            "url": f"https://x.com/i/status/{xid}" if xid else "",
+            "likes": latest.likes if latest else 0,
+            "replies": latest.replies if latest else 0,
+            "views": latest.views if latest else 0,
+            "samples": len(samples),
+        })
+    return out
+
+
+def reply_detail(session: Session, draft_id: int) -> dict:
+    """One reply, in full: what it answered, where it is, and how it has moved."""
+    d = session.get(Draft, draft_id)
+    if not d:
+        raise ValueError("draft not found")
+    action = _action_for_draft(session, d.id)
+    xid = action.x_post_id if action else ""
+    samples = _samples(session, xid)
+    parent = session.get(Post, d.parent_post_id) if d.parent_post_id else None
+    stage, note = _stage(d, action, samples)
+
+    # The timeline the operator actually cares about, in order.
+    steps = [{"key": "drafted", "label": "Quill wrote it",
+              "at": d.created_at.isoformat() if d.created_at else None, "done": True}]
+    approved_at = action.created_at if action else None
+    steps.append({"key": "approved",
+                  "label": "Sent on its own" if d.mode_at_creation in ("auto", "foryou")
+                           else "You approved it",
+                  "at": approved_at.isoformat() if approved_at else None,
+                  "done": bool(action)})
+    steps.append({"key": "posted", "label": "Posted to X",
+                  "at": (action.finished_at.isoformat()
+                         if action and action.finished_at else None),
+                  "done": bool(xid)})
+    steps.append({"key": "measured", "label": "Checked how it did",
+                  "at": samples[0].at.isoformat() if samples else None,
+                  "done": bool(samples),
+                  "detail": (f"{len(samples)} of {len(METRIC_SCHEDULE_S)} checks done"
+                             if samples else "first check about an hour after posting")})
+    answered = bool(samples and samples[-1].replies > 0)
+    steps.append({"key": "answered", "label": "Someone replied to it",
+                  "at": None, "done": answered,
+                  "detail": ("worth 150 likes to the algorithm" if answered
+                             else "the outcome this is all aimed at")})
+
+    return {
+        "draft_id": d.id, "x_post_id": xid, "text": d.final_text,
+        "stage": stage, "note": note, "status": d.status,
+        "mode": d.mode_at_creation,
+        "relevance": d.relevance,
+        "critic": json.loads(d.critic_json or "[]"),
+        "candidates": json.loads(d.candidates_json or "[]"),
+        "chosen_index": d.chosen_index,
+        "to": parent.author_handle if parent else "",
+        "parent_text": parent.text if parent else "",
+        "parent_url": parent.url if parent else "",
+        "url": f"https://x.com/i/status/{xid}" if xid else "",
+        "error": action.error if action else "",
+        "steps": steps,
+        "series": [{"at": s.at.isoformat(), "likes": s.likes, "replies": s.replies,
+                    "reposts": s.reposts, "views": s.views} for s in samples],
+    }
+
+
 def reply_scoreboard(session: Session) -> dict:
     """The metric the whole reply strategy is aimed at.
 

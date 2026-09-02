@@ -10,6 +10,7 @@ import {
 import { IconArrowRight, IconCheck, IconExternal, IconSpark } from "../components/Icons";
 import { LaunchPanel, useLaunchStatus } from "../components/LaunchPanel";
 import { PipelineFlow } from "../components/PipelineFlow";
+import { SentReplies } from "../components/SentReplies";
 
 export function Home({ go }: { go: (t: TabId) => void }) {
   const gov = useQuery({ queryKey: ["governor"], queryFn: () => api.get("/api/governor") });
@@ -49,9 +50,10 @@ export function Home({ go }: { go: (t: TabId) => void }) {
 
       {/* The four numbers that answer "what's going on" without reading a word. */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {/* Amber means "you have to do something", everywhere in the app. */}
         <StatCard
           label="Waiting for you" value={queue.isPending ? "—" : queueN}
-          tone={queueN > 0 ? "accent" : "neutral"} loading={queue.isPending}
+          tone={queueN > 0 ? "warn" : "go"} loading={queue.isPending}
           sub={queueN > 0 ? "replies to review" : "queue is clear"}
           onClick={() => go("Autopilot")}
         />
@@ -62,6 +64,7 @@ export function Home({ go }: { go: (t: TabId) => void }) {
         <StatCard
           label="Accounts watched" value={accounts.data?.length ?? "—"}
           sub={autoCount != null ? `${autoCount} reply on their own` : undefined}
+          tone="info"
           onClick={() => go("Watchlist")}
         />
         {/* The read budget is the quietest way Quill can stop working: once it
@@ -84,6 +87,9 @@ export function Home({ go }: { go: (t: TabId) => void }) {
 
       {/* Live: what Quill is doing right now, step by step. */}
       <PipelineFlow />
+
+      {/* And then: what came of everything it already did. */}
+      <SentReplies />
 
       <div className="grid gap-4 lg:grid-cols-3 items-start">
       {/* What needs a human, first and largest. */}
@@ -132,7 +138,7 @@ export function Home({ go }: { go: (t: TabId) => void }) {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 pt-3 border-t border-rule text-[12.5px] text-muted">
-            <span>mode <Badge tone={g?.mode === "auto" ? "accent" : g?.mode === "assisted" ? "warn" : "neutral"}>{g?.mode ?? "—"}</Badge></span>
+            <span>mode <Badge tone={g?.mode === "auto" ? "warn" : g?.mode === "assisted" ? "info" : "neutral"}>{g?.mode ?? "—"}</Badge></span>
             <span className="num">reads today <b className="text-ink-2">{u?.reads ?? 0}</b></span>
             {g?.quiet_now && <Badge tone="neutral">quiet hours</Badge>}
             {g?.kill_switch && <Badge tone="risk">kill switch on</Badge>}
@@ -217,7 +223,7 @@ export function Home({ go }: { go: (t: TabId) => void }) {
                 <li key={a.id} className="flex items-center gap-2 text-[13px]">
                   <span className="truncate">@{a.handle}</span>
                   <Badge className="ml-auto shrink-0"
-                    tone={a.mode === "auto" ? "accent" : a.mode === "assisted" ? "warn" : "neutral"}>
+                    tone={a.mode === "auto" ? "warn" : a.mode === "assisted" ? "info" : "neutral"}>
                     {a.mode}
                   </Badge>
                 </li>
