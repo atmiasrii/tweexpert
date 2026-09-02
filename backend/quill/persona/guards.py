@@ -209,10 +209,27 @@ def lecturing(text: str, parent_text: str) -> str:
     return ""
 
 
+# --- 8. glued words and stray capitals ---------------------------------------
+# The local model drops the space between two words and capitalises the second
+# ("made the black marketObsolete"). `engine.fix_casing` repairs this on every
+# draft; this is the net for anything written before that existed, or by a path
+# that skipped it, so "Clear old" can find them.
+_GLUED_TELL = re.compile(r"[a-z]{2}[A-Z][a-z]{2}")
+
+
+def glued_words(text: str) -> str:
+    from .engine import _KEEP_CAPS          # lazy: engine imports prefilter
+    for tok in re.findall(r"[A-Za-z']+", text or ""):
+        if _GLUED_TELL.search(tok) and tok.lower() not in _KEEP_CAPS:
+            return f"glued words: '{tok}'"
+    return ""
+
+
 # --- combined ----------------------------------------------------------------
 def check(text: str, parent_text: str, archetype: str = "") -> str:
     """Return the first failure reason, or "" when the reply is clean."""
     for reason in (simile_tell(text),
+                   glued_words(text),
                    punching_down(text, parent_text),
                    invented_numbers(text, parent_text),
                    lecturing(text, parent_text),

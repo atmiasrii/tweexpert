@@ -100,25 +100,128 @@ def _draft_one(llm: LLM, system: str, source: str, angle_name: str,
            "Do not repeat that mistake.\n" if reasons else "")
         + "Reply text only. No preamble, no quotes, no explanation."
     )
-    return _clean(llm.draft(system, user, DRAFT_TEMPERATURE))
+    return _clean(llm.draft(system, user, DRAFT_TEMPERATURE), source)
 
 
 import re as _re
 
 
-def _clean(text: str) -> str:
+def _clean(text: str, parent_text: str = "") -> str:
     # strip reasoning traces some models emit, and surrounding quotes/labels
     text = _re.sub(r"<think>.*?</think>", "", text, flags=_re.DOTALL | _re.IGNORECASE)
     text = text.strip().strip('"').strip("'").strip()
     text = _re.sub(r"^(reply|here'?s (a |the )?reply|response)\s*[:\-]\s*", "",
                    text, flags=_re.IGNORECASE).strip()
-    return normalize(text)
+    return normalize(text, parent_text)
 
 
-def normalize(text: str) -> str:
+# Words whose capitalised form is legitimate mid-sentence. Only ever used to
+# PRESERVE a capital the model already wrote, never to add one, because most of
+# these are ordinary words too ("meta point", "go routine").
+_KEEP_CAPS = {
+    "i", "openai", "chatgpt", "anthropic", "claude", "gemini", "grok", "llama",
+    "mistral", "deepseek", "qwen", "github", "gitlab", "google", "apple",
+    "microsoft", "amazon", "meta", "tesla", "spacex", "nvidia", "netflix",
+    "python", "rust", "javascript", "typescript", "java", "golang", "swift",
+    "kubernetes", "docker", "linux", "windows", "postgres", "postgresql",
+    "sqlite", "redis", "mysql", "pytorch", "tensorflow", "numpy", "pandas",
+    "django", "flask", "fastapi", "react", "vue", "svelte", "next", "vercel",
+    "cloudflare", "stripe", "shopify", "figma", "notion", "slack", "discord",
+    "twitter", "youtube", "linkedin", "tiktok", "reddit", "cursor", "copilot",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+    "january", "february", "march", "april", "may", "june", "july", "august",
+    "september", "october", "november", "december",
+}
+
+# A missing space inside one token: lowercase, then a capitalised word.
+_GLUED = _re.compile(r"(?<=[a-z]{2})([A-Z][a-z]{2,})")
+_SPLIT_REPL = lambda m: " " + m.group(1)
+
+_LEAD = _re.compile(r"^[^\w]*")
+_TRAIL = _re.compile(r"[^\w]*$")
+
+
+def _split_tokens(text: str):
+    """Yield (token, is_sentence_start). A sentence starts at the beginning and
+    after . ! ? on the previous token, ignoring closing quotes and brackets."""
+    start = True
+    for tok in text.split(" "):
+        yield tok, start
+        stripped = tok.rstrip("\"')]}")
+        if stripped.endswith((".", "!", "?")):
+            start = True
+        elif tok.strip():
+            start = False
+
+
+def _core(tok: str) -> tuple[str, str, str]:
+    lead = _LEAD.match(tok).group()
+    trail = _TRAIL.search(tok).group()
+    return lead, tok[len(lead): len(tok) - len(trail) or None], trail
+
+
+def _proper_nouns(parent_text: str) -> set[str]:
+    """Capitalised words the author themselves used, excluding the ones that are
+    only capitalised because they begin a sentence. If the post says Argentina,
+    the reply is allowed to say Argentina."""
+    out: set[str] = set()
+    if not parent_text:
+        return out
+    for tok, sent_start in _split_tokens(parent_text):
+        _, core, _ = _core(tok)
+        if core and not sent_start and core[0].isupper():
+            out.add(core.lower())
+    return out
+
+
+def fix_casing(text: str, parent_text: str = "") -> str:
+    """Undo the two casing failures the local model keeps making.
+
+    1. Glued words: "made the black marketObsolete" -> "black market obsolete".
+    2. Stray capitals mid-sentence: "Doing the reps is Overrated". A capital
+       survives only if it is defensible: an acronym (IQ, API), a word with an
+       internal capital (OpenAI, PyTorch), a known name, or a word the post
+       being answered capitalised itself. Everything else is the model shouting
+       at random, which reads as machine-written.
+
+    Known camel-case names are skipped whole, so GitHub does not become Git Hub.
+    """
+    if not text:
+        return ""
+    proper = _proper_nouns(parent_text)
+    out = []
+    for tok, sent_start in _split_tokens(text):
+        lead, core, trail = _core(tok)
+        if not core:
+            out.append(tok)
+            continue
+        if core.lower() in _KEEP_CAPS:          # GitHub, OpenAI, PyTorch
+            out.append(tok)
+            continue
+        pieces = _GLUED.sub(_SPLIT_REPL, core).split(" ")
+        fixed = []
+        for i, piece in enumerate(pieces):
+            first = sent_start and i == 0
+            if piece and not first and piece[0].isupper() and not _defensible(piece, proper):
+                piece = piece[0].lower() + piece[1:]
+            fixed.append(piece)
+        out.append(lead + " ".join(fixed) + trail)
+    return " ".join(out)
+
+
+def _defensible(word: str, proper: set) -> bool:
+    return (word.isupper()                            # IQ, API, MRR
+            or any(c.isupper() for c in word[1:])     # OpenAI, PyTorch
+            or word.lower() in _KEEP_CAPS
+            or word.lower() in proper
+            or word.lower().rstrip("s").rstrip("'") in proper)
+
+
+def normalize(text: str, parent_text: str = "") -> str:
     """Scrub AI-typing tells and keep replies within X's limit. Em dashes are the
-    single most common giveaway, so they go; curly quotes → straight; length is
-    hard-capped at a word/sentence boundary."""
+    single most common giveaway, so they go; curly quotes → straight; casing is
+    repaired against the parent post; length is hard-capped at a word/sentence
+    boundary."""
     if not text:
         return ""
     # smart punctuation → plain
@@ -128,10 +231,7 @@ def normalize(text: str) -> str:
                 .replace("…", "..."))
     text = _re.sub(r"\s+", " ", text).strip()
     text = _re.sub(r"\s+,", ",", text)
-    # The model occasionally glues two words together ("black marketObsolete").
-    # Only split lower->upper between two real words, so OpenAI and PyTorch and
-    # iPhone survive untouched.
-    text = _re.sub(r"(?<=[a-z]{2})([A-Z][a-z]{2,})", r" \1", text)
+    text = fix_casing(text, parent_text)
     if len(text) <= _MAX_CHARS:
         return text
     # trim to the last sentence end, else last word, under the cap
