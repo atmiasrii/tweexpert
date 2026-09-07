@@ -402,6 +402,11 @@ def _confident(session: Session, text: str, critic: dict, auto_min: int) -> tupl
     return True, ""
 
 
+def _cd(c) -> dict:
+    return {"angle": c.angle, "text": c.text, "critic": c.critic,
+            "prefilter_ok": c.prefilter_ok, "prefilter_reason": c.prefilter_reason}
+
+
 def _push_sent(session, draft, x_post_id, author):
     from ..notify import notifier
     from ..security import make_action_token

@@ -263,10 +263,19 @@ def send_due_auto(session: Session) -> list[str]:
             sent.append(action.x_post_id)
             _post_send_push(session, draft, action.x_post_id)
         except GovernorRefusal as e:
-            # Spacing or the burst guard: the send is still wanted, just not
-            # yet. Dropping it here is what silently lost scheduled replies.
-            log.info("auto send deferred: %s", e.reason)
-            remaining.append(item)
+            # Spacing and the burst guard are "not yet": keep the send and try
+            # again on the next tick. Dropping it here is what silently lost
+            # scheduled replies. A cap, the kill switch or quiet hours mean the
+            # day is over for this reply, so hand it back to the operator
+            # instead of retrying until the authorization expires.
+            if "spacing" in e.reason or "burst" in e.reason:
+                log.info("auto send deferred: %s", e.reason)
+                remaining.append(item)
+            else:
+                log.info("auto send stood down: %s", e.reason)
+                draft.status = "queued"
+                session.add(draft)
+                session.commit()
         except Exception as e:
             log.warning("auto send failed: %s", e)
     set_setting(session, "_pending_auto", remaining)

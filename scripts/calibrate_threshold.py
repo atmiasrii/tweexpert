@@ -57,6 +57,47 @@ def _sample_live(session, n: int) -> list[dict]:
     return out
 
 
+def from_db(session) -> list[dict]:
+    """Score the drafts Quill has already written.
+
+    Far better evidence than regenerating a corpus: these are real posts this
+    account actually saw, scored by the same critic, and there are enough of
+    them to see a distribution. Regenerating 60 drafts takes hours on a 14B
+    model; this is instant and no less honest.
+    """
+    from quill.db.models import Draft, Post
+    from sqlmodel import select
+
+    vocab = operator_vocabulary(session)
+    rows = []
+    for d in session.exec(select(Draft).where(Draft.kind == "reply")).all():
+        try:
+            crits = json.loads(d.critic_json or "[]")
+        except (ValueError, TypeError):
+            continue
+        crit = crits[d.chosen_index] if crits and d.chosen_index < len(crits) else None
+        if not crit or not all(a in crit for a in AXES):
+            continue
+        text = d.final_text or ""
+        parent = session.get(Post, d.parent_post_id) if d.parent_post_id else None
+        ptext = parent.text if parent else ""
+        flags = [f for f in (guards.simile_tell(text),
+                             guards.punching_down(text, ptext),
+                             guards.invented_numbers(text, ptext),
+                             guards.generic_reply(text, ptext),
+                             guards.lecturing(text, ptext),
+                             guards.fabricated_experience(text, vocab)) if f]
+        rows.append({
+            "h": parent.author_handle if parent else "?", "k": d.mode_at_creation,
+            "t": ptext, "produced": True, "text": text,
+            "axis_sum": sum(int(crit[a]) for a in AXES),
+            "min_axis": min(int(crit[a]) for a in AXES),
+            "len": len(text), "question": "?" in text, "flags": flags,
+            "rel": d.relevance or None, "status": d.status,
+        })
+    return rows
+
+
 def measure(session, items: list[dict]) -> list[dict]:
     vocab = operator_vocabulary(session)
     rows = []
@@ -119,16 +160,22 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=40)
     ap.add_argument("--strictness", type=float, default=0.2)
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--from-db", action="store_true",
+                    help="score drafts already written instead of regenerating")
     args = ap.parse_args()
 
     with session_scope() as session:
-        items = [{"h": c["h"], "k": c["k"], "t": c["t"]} for c in CORPUS[: args.limit]]
-        if args.live:
-            live = _sample_live(session, args.live)
-            print(f"sampled {len(live)} live For You posts")
-            items += live
-        print(f"measuring {len(items)} posts")
-        rows = measure(session, items)
+        if args.from_db:
+            rows = from_db(session)
+            print(f"scored {len(rows)} drafts already written")
+        else:
+            items = [{"h": c["h"], "k": c["k"], "t": c["t"]} for c in CORPUS[: args.limit]]
+            if args.live:
+                live = _sample_live(session, args.live)
+                print(f"sampled {len(live)} live For You posts")
+                items += live
+            print(f"measuring {len(items)} posts")
+            rows = measure(session, items)
         report = choose(rows, args.strictness)
 
         print("\naxis_sum distribution (clean drafts only)")
@@ -147,7 +194,10 @@ def main() -> None:
               f"asks a question: {rec['question_pct']}%   "
               f"mean {rec['mean_len']} ch")
 
-        rels = [r["rel"] for r in rows if r.get("rel") is not None]
+        # Only live posts carry a comparable relevance number. Drafts written by
+        # the old For You path stored a 4-20 critic sum in the same field, so a
+        # median over stored drafts mixes two scales and means nothing.
+        rels = [] if args.from_db else [r["rel"] for r in rows if r.get("rel") is not None]
         rel_cut = round(statistics.median(rels), 1) if rels else None
         if rel_cut:
             print(f"recommended foryou_relevance_min = {rel_cut} "

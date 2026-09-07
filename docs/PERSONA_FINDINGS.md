@@ -65,6 +65,40 @@ choosing projects that need them"*) could sit under a thousand different posts.
 with the post, unless it carries its own concrete detail (a number, or an
 unusual long noun). Crude, but it catches the exact failure and is cheap.
 
+### 2026-09-07, threshold calibration
+
+`foryou_auto_min` was 16 and nobody derived it from anything. Calibrated against
+the 60 drafts Quill has actually written, scored by the same critic, via
+`scripts/calibrate_threshold.py --from-db`.
+
+| axis_sum | drafts |
+|---|---|
+| 16 | 2 |
+| 17 | 32 |
+| 18 | 13 |
+| 19 | 7 |
+| 20 | 3 |
+
+**Chosen: 19**, which accepts 10 of 60 (16.7%), the "strict" top-fifth the
+operator asked for. Accepted drafts average 128 characters with 70% inside the
+80-180 band.
+
+Two things this exposes:
+
+- **The critic barely discriminates.** 32 of 60 drafts score exactly 17 and the
+  whole distribution spans 16-20 out of a possible 4-20. A threshold is a blunt
+  instrument on a distribution this compressed, and moving the cut by one point
+  swings the accept rate from 17% to 40%. The critic needs to spread before the
+  threshold means much.
+- **Strict and high volume are in tension.** At 19, a 10-author batch yields
+  roughly 1.7 sends, so about 15-20 replies a day. That is the research optimal
+  band, but it is nothing like the 49/day ceiling. 49 is the ceiling, not the
+  target; the confidence bar is what actually sets volume. Dropping to 18 would
+  roughly double it and let noticeably weaker replies through.
+- **None of the accepted drafts asked a question** (research wants ~30%), which
+  suggests the critic quietly rewards statements over questions even though the
+  question archetype is the highest-value one.
+
 ### 2026-09-02, eval run 2 (all seven guards)
 
 Full report in `PERSONA_EVAL.md`.
