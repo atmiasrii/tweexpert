@@ -8,6 +8,7 @@ Selector resolution tries primary then fallbacks; total miss => SelectorMiss.
 """
 from __future__ import annotations
 
+import json
 import random
 import re
 import time
@@ -34,10 +35,52 @@ class PlaywrightEngine:
         self._page = None
         self._start()
 
+    # Chromium shows a "Restore pages?" bubble when the profile was not closed
+    # cleanly, and then restores the previous tabs. Both hurt: the bubble sits
+    # over the page, and the restored tabs mean pages[0] is some stale tab
+    # rather than the one we are about to drive. Quill force-kills the browser
+    # process on stop, so a crashed profile is the normal case, not a rare one.
+    _CLEAN_EXIT_FLAGS = [
+        "--disable-blink-features=AutomationControlled",
+        "--disable-session-crashed-bubble",
+        "--hide-crash-restore-bubble",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-features=InfiniteSessionRestore,TranslateUI",
+        "--restore-last-session=false",
+    ]
+
+    def _mark_profile_clean(self) -> None:
+        """Tell Chromium the last session ended normally.
+
+        The flags above suppress the bubble in most builds, but the profile's
+        own Preferences file is what actually decides, so fix it at the source.
+        """
+        for name in ("Default/Preferences", "Default/Secure Preferences"):
+            path = self.s.profile_dir / name
+            if not path.exists():
+                continue
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (ValueError, OSError):
+                continue
+            profile = data.setdefault("profile", {})
+            if (profile.get("exit_type") == "Normal"
+                    and profile.get("exited_cleanly") is True):
+                continue
+            profile["exit_type"] = "Normal"
+            profile["exited_cleanly"] = True
+            try:
+                path.write_text(json.dumps(data), encoding="utf-8")
+                log.info("profile marked as cleanly closed (%s)", name)
+            except OSError as e:
+                log.warning("could not clear the crash flag: %s", e)
+
     def _start(self):
         from playwright.sync_api import sync_playwright  # lazy (browser proc only)
 
         self.s.profile_dir.mkdir(parents=True, exist_ok=True)
+        self._mark_profile_clean()
         self._pw = sync_playwright().start()
         self._ctx = self._pw.chromium.launch_persistent_context(
             user_data_dir=str(self.s.profile_dir),
@@ -45,9 +88,28 @@ class PlaywrightEngine:
             viewport={"width": 1280, "height": 900},
             locale="en-US",
             timezone_id=self.s.operator_timezone,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=list(self._CLEAN_EXIT_FLAGS),
         )
-        self._page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
+        self._page = self._pick_page()
+
+    def _pick_page(self):
+        """One page to drive, even if a restore reopened several.
+
+        Taking pages[0] blindly meant driving whichever tab Chromium happened to
+        restore, so every selector missed on a page we were not looking at.
+        """
+        pages = [p for p in self._ctx.pages if not p.is_closed()]
+        if not pages:
+            return self._ctx.new_page()
+        keep = pages[0]
+        for extra in pages[1:]:
+            try:
+                extra.close()
+            except Exception:
+                pass
+        if len(pages) > 1:
+            log.info("closed %d restored tab(s)", len(pages) - 1)
+        return keep
 
     def close(self):
         try:
@@ -59,15 +121,25 @@ class PlaywrightEngine:
             pass
 
     # -- selector resolution (E-06/E-07) --------------------------------
-    def _find_all(self, key: str):
+    # X renders the timeline client-side and can take well over ten seconds on a
+    # cold load. Looking for tweets right after domcontentloaded was a race, and
+    # losing it raised SelectorMiss on a page that was simply still spinning.
+    FEED_WAIT_MS = 20000
+
+    def _find_all(self, key: str, wait_ms: int = 0):
         entry: SelectorEntry = self.reg.get(key)
-        for sel in entry.all():
-            try:
-                loc = self._page.locator(sel)
-                if loc.count() > 0:
-                    return loc, sel
-            except Exception:
-                continue
+        deadline = time.time() + (wait_ms / 1000.0)
+        while True:
+            for sel in entry.all():
+                try:
+                    loc = self._page.locator(sel)
+                    if loc.count() > 0:
+                        return loc, sel
+                except Exception:
+                    continue
+            if time.time() >= deadline:
+                break
+            time.sleep(0.5)
         raise SelectorMiss(key, self._capture("selector_miss"))
 
     def _find(self, key: str):
@@ -229,7 +301,7 @@ class PlaywrightEngine:
         return out
 
     def _parse_timeline(self, handle: str, since_id: str = "") -> list[ParsedPost]:
-        tweets, _ = self._find_all("tweet")
+        tweets, _ = self._find_all("tweet", wait_ms=self.FEED_WAIT_MS)
         out: list[ParsedPost] = []
         for i in range(min(tweets.count(), 30)):
             p = self._extract(tweets.nth(i), surface_handle=handle)
@@ -247,8 +319,11 @@ class PlaywrightEngine:
         most of the feed."""
         seen: set[str] = set()
         out: list[ParsedPost] = []
+        first = True
         for _ in range(rounds):
-            tweets, _sel = self._find_all("tweet")
+            tweets, _sel = self._find_all("tweet",
+                                          wait_ms=self.FEED_WAIT_MS if first else 0)
+            first = False
             for i in range(tweets.count()):
                 p = self._extract(tweets.nth(i), surface_handle=surface_handle)
                 if p is None or p.x_post_id in seen:

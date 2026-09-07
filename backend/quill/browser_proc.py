@@ -102,13 +102,25 @@ def main():
     scheduler.start()
 
     stop = {"v": False}
-    signal.signal(signal.SIGTERM, lambda *_: stop.__setitem__("v", True))
-    signal.signal(signal.SIGINT, lambda *_: stop.__setitem__("v", True))
+    for sig in ("SIGTERM", "SIGINT", "SIGBREAK"):
+        if hasattr(signal, sig):
+            signal.signal(getattr(signal, sig), lambda *_: stop.__setitem__("v", True))
     try:
         while not stop["v"]:
             time.sleep(1)
     finally:
         scheduler.shutdown(wait=False)
+        # Close Chromium properly. Without this the profile is left marked
+        # "Crashed", and the next launch shows the restore-pages bubble and
+        # reopens the old tabs on top of the one we want to drive.
+        try:
+            from .browser import get_engine
+            eng = get_engine()
+            if hasattr(eng, "close"):
+                eng.close()
+            log.info("chromium closed cleanly")
+        except Exception as e:
+            log.warning("could not close chromium cleanly: %s", e)
         log.info("browser process stopped")
 
 

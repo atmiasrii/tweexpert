@@ -129,15 +129,39 @@ def _spawn(name: str, engine: str) -> int:
     return proc.pid
 
 
-def _terminate(pid: int) -> None:
+def _terminate(pid: int, grace_s: float = 10.0) -> None:
+    """Ask the process to stop, then force it if it will not.
+
+    Going straight to taskkill /F left Chromium's profile marked as crashed
+    every single time, which is what produced the "Restore pages?" bubble and
+    the restored tabs on the next start. The children are spawned into their own
+    process group precisely so they can be sent Ctrl+Break here.
+    """
     if not _alive(pid):
         return
+    try:
+        if os.name == "nt":
+            import signal as _signal
+            os.kill(pid, _signal.CTRL_BREAK_EVENT)
+        else:
+            os.kill(pid, 15)
+    except Exception as e:
+        log.info("polite stop of %s failed (%s); forcing", pid, e)
+
+    deadline = time.time() + grace_s
+    while time.time() < deadline:
+        if not _alive(pid):
+            log.info("process %s stopped cleanly", pid)
+            return
+        time.sleep(0.5)
+
+    log.warning("process %s did not stop in %.0fs; forcing", pid, grace_s)
     try:
         if os.name == "nt":
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
                            capture_output=True)
         else:
-            os.kill(pid, 15)
+            os.kill(pid, 9)
     except Exception as e:      # a process that is already gone is a success
         log.warning("terminate %s: %s", pid, e)
 
