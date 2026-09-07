@@ -14,7 +14,7 @@ from ..db.models import Action, GovernorDay
 from ..db.settings_store import get_setting
 from ..defaults import (BURST_MAX_WRITES, BURST_WINDOW_S, CAP_POSTS,
                         CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO, CAP_REPLIES_FORYOU,
-                        CAP_THREADS,
+                        CAP_REPLIES_TOTAL, CAP_THREADS,
                         AUTO_DELAY_MAX_S, AUTO_DELAY_MIN_S, MIN_WRITE_SPACING_S,
                         QUIET_DRIFT_MIN, QUIET_END, QUIET_START,
                         WRITE_JITTER_FRAC)
@@ -113,6 +113,15 @@ def check_write_allowed(session: Session, kind: str, mode: str) -> None:
         raise GovernorRefusal("quiet hours")
     if mode == "auto" and day.no_auto_today:
         raise GovernorRefusal("weekly-shape rest day: no auto activity")
+
+    # One ceiling across every reply path. The per-mode caps below cannot see
+    # each other, so without this the real daily volume is their sum.
+    if kind == "reply":
+        total_cap = get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL)
+        total_used = day.replies_auto + day.replies_assisted + day.replies_foryou
+        if total_used >= total_cap:
+            raise GovernorRefusal(
+                f"daily cap reached: all replies {total_used}/{total_cap}")
 
     cap, field = _cap_for(session, kind, mode)
     used = getattr(day, field)

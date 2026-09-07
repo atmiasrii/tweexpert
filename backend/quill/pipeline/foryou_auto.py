@@ -11,14 +11,16 @@ spacing between writes, and the burst guard.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..bus.action_bus import get_bus
 from ..bus.authz import ActionAuthorization, issue
 from ..config import get_settings
 from ..db.models import Draft, Post
+from ..defaults import (CRITIC_MIN_AUTO, FORYOU_AUTHOR_COOLDOWN_H,
+                        FORYOU_PER_RUN, MIN_WRITE_SPACING_S)
 from ..db.settings_store import get_setting, set_setting
 from ..governor import governor
 from ..logging_setup import get_logger
@@ -33,7 +35,17 @@ K_ENABLED = "foryou_enabled"
 K_INTERVAL = "foryou_interval_min"
 K_PER_RUN = "foryou_per_run"
 K_MODE = "foryou_mode"           # "auto" (send) | "assisted" (queue)
-DEFAULTS = {K_ENABLED: False, K_INTERVAL: 5, K_PER_RUN: 5, K_MODE: "assisted"}
+K_RELEVANCE_MIN = "foryou_relevance_min"
+K_COOLDOWN_H = "foryou_author_cooldown_h"
+
+# Both of these are calibrated by scripts/calibrate_threshold.py rather than
+# guessed; these are only the starting points.
+FORYOU_RELEVANCE_MIN = 55.0
+FORYOU_AUTO_MIN = 18
+
+DEFAULTS = {K_ENABLED: False, K_INTERVAL: 90, K_PER_RUN: FORYOU_PER_RUN,
+            K_MODE: "assisted", K_RELEVANCE_MIN: FORYOU_RELEVANCE_MIN,
+            K_COOLDOWN_H: FORYOU_AUTHOR_COOLDOWN_H}
 
 
 def config(session: Session) -> dict:
@@ -90,6 +102,12 @@ def draft_for_post(session: Session, parsed, mode: str = "auto",
     live_state.record(session, "drafting", f"writing a reply to @{parsed.author_handle}",
                       target=parsed.author_handle, post_x_id=parsed.x_post_id)
 
+    # The fast path skips the critic, so it can never know whether a draft is
+    # good enough to send. That is why every extension card was 1-click. When
+    # auto-send is on, take the slower scored path instead.
+    if fast and mode == "auto":
+        fast = False
+
     if fast:
         from ..pipeline.blocklist import unsafe_to_send
         text = persona.quick_reply(session, parsed.text)
@@ -118,11 +136,9 @@ def draft_for_post(session: Session, parsed, mode: str = "auto",
 
     chosen = result.candidates[result.chosen_index]
     crit = chosen.critic or {}
-    axis_sum = sum(int(crit.get(a, 0)) for a in AXES)
-    unsafe = unsafe_to_send(result.final_text, session)
-    high_conf = (all(int(crit.get(a, 0)) >= 4 for a in AXES)
-                 and axis_sum >= get_setting(session, "foryou_auto_min", 18)
-                 and not unsafe)
+    axis_sum = _axis_sum(crit)
+    auto_min = int(get_setting(session, "foryou_auto_min", FORYOU_AUTO_MIN))
+    high_conf, _why = _confident(session, result.final_text, crit, auto_min)
 
     draft = Draft(kind="reply", parent_post_id=post_row.id, final_text=result.final_text,
                   relevance=chosen.critic and axis_sum or 0, mode_at_creation="foryou",
@@ -163,33 +179,123 @@ def tick(session: Session) -> dict | None:
     return run(session)
 
 
+def _cooldown_authors(session: Session, hours: int) -> set[str]:
+    """Authors already answered inside the cooldown window.
+
+    There was no author-level dedupe anywhere before this: one sweep could hand
+    the same handle three replies, which is the most obvious bot tell there is.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = session.exec(
+        select(Draft).where(Draft.kind == "reply",
+                            Draft.status.in_(["sent", "approved", "ready"]),
+                            Draft.created_at >= cutoff)).all()
+    out: set[str] = set()
+    for d in rows:
+        if not d.parent_post_id:
+            continue
+        parent = session.get(Post, d.parent_post_id)
+        if parent and parent.author_handle:
+            out.add(parent.author_handle.lower())
+    return out
+
+
+def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
+                rel_min: float, cooldown_h: int) -> tuple[list, dict]:
+    """Choose up to `per_run` posts, one per author, all above the threshold.
+
+    Everything the watcher path already does and this path never did: the hard
+    skip gates, a relevance floor, and one reply per author.
+    """
+    op = get_settings().operator_handle
+    recent = _cooldown_authors(session, cooldown_h)
+    tally = {"own": 0, "blocked": 0, "skipped": 0, "below_threshold": 0,
+             "duplicate_author": 0, "cooldown": 0}
+
+    best: dict[str, tuple[float, object]] = {}
+    for p in posts:
+        handle = (p.author_handle or "").lower()
+        if handle == op.lower():
+            tally["own"] += 1
+            continue
+        if handle in recent:
+            tally["cooldown"] += 1
+            continue
+        if block_reason(session, p, auto=(mode == "auto")):
+            tally["blocked"] += 1
+            continue
+        if relevance_mod.skip_reason(p):
+            tally["skipped"] += 1
+            continue
+        rel = relevance_mod.score(session, p, None)
+        if rel < rel_min:
+            tally["below_threshold"] += 1
+            continue
+        prev = best.get(handle)
+        if prev is None:
+            best[handle] = (rel, p)
+        else:
+            tally["duplicate_author"] += 1
+            if rel > prev[0]:
+                best[handle] = (rel, p)
+
+    ranked = sorted(best.values(), key=lambda x: x[0], reverse=True)
+    return ranked[:per_run], tally
+
+
+def _schedule_send(session: Session, draft, target_x_id: str, rel: float,
+                   slot: int) -> datetime:
+    """Queue a send `slot` spacing-steps out instead of firing it now.
+
+    The old loop called submit_write inside the for-loop, so the governor's
+    9-minute spacing refused reply 2 onward and every one of them fell back to
+    the review queue: a batch of ten sent one. Staggering them here is what
+    makes a batch actually a batch.
+    """
+    spacing = int(get_setting(session, "min_write_spacing_s", MIN_WRITE_SPACING_S))
+    delay = slot * spacing + governor.jitter_seconds(spacing // 3)
+    send_at = datetime.now(timezone.utc) + timedelta(seconds=max(0, delay))
+    # The batch spans longer than the default 1h authorization TTL, so the last
+    # send would find its authorization expired. Cover the whole batch.
+    ttl = int(spacing * (slot + 2) + 3600)
+    authz = issue(session, draft.id, issuer="policy", mode="foryou",
+                  reasons=["for-you auto reply", f"relevance {rel}"], ttl_s=ttl)
+    pipeline._stash_pending(session, draft.id, authz.id, target_x_id, send_at)
+    return send_at
+
+
 def run(session: Session, per_run: int | None = None, mode: str | None = None) -> dict:
+    """One For You sweep: read the feed, pick up to `per_run` unique authors
+    above the relevance floor, draft each, and either send the confident ones on
+    a spaced schedule or bin them."""
     cfg = config(session)
     per_run = per_run if per_run is not None else int(cfg[K_PER_RUN])
     mode = mode or cfg[K_MODE]
+    rel_min = float(get_setting(session, K_RELEVANCE_MIN, FORYOU_RELEVANCE_MIN))
+    cooldown_h = int(get_setting(session, K_COOLDOWN_H, FORYOU_AUTHOR_COOLDOWN_H))
+    auto_min = int(get_setting(session, "foryou_auto_min", FORYOU_AUTO_MIN))
+
+    out = {"scanned": 0, "picked": 0, "queued": 0, "sent": 0, "skipped": 0,
+           "discarded": 0, "mode": mode, "replies": [], "why_skipped": {}}
+
+    if governor.read_budget_left(session) <= 0:
+        log.info("for-you run skipped: read budget exhausted")
+        out["skipped"] = 1
+        out["why_skipped"] = {"read_budget": 1}
+        return out
 
     bus = get_bus()
     live_state.record(session, "watching", "reading your For You feed", target="For You")
     posts = bus.submit_read("presence", "home") or []
     governor.record_read(session, 1)
+    out["scanned"] = len(posts)
 
-    op = get_settings().operator_handle
-    scored = []
-    for p in posts:
-        if p.author_handle == op:
-            continue
-        scored.append((relevance_mod.score(session, p, None), p))
-    scored.sort(key=lambda x: x[0], reverse=True)
+    batch, tally = _pick_batch(session, posts, mode, per_run, rel_min, cooldown_h)
+    out["why_skipped"] = tally
+    slot = 0
 
-    out = {"scanned": len(posts), "picked": 0, "queued": 0, "sent": 0,
-           "skipped": 0, "mode": mode, "replies": []}
-
-    for rel, p in scored[: per_run]:
+    for rel, p in batch:
         out["picked"] += 1
-        # hard content gates first
-        if block_reason(session, p, auto=(mode == "auto")):
-            out["skipped"] += 1
-            continue
         live_state.record(session, "drafting", f"writing a reply to @{p.author_handle}",
                           target=p.author_handle, post_x_id=p.x_post_id)
         result = persona.generate(session, p.text, account_handle=p.author_handle,
@@ -201,6 +307,7 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
             continue
 
         post_row = pipeline.upsert_post(session, p)
+        chosen = result.candidates[result.chosen_index]
         draft = Draft(kind="reply", parent_post_id=post_row.id, final_text=result.final_text,
                       relevance=rel, mode_at_creation="foryou",
                       candidates_json=json.dumps([_cd(c) for c in result.candidates]),
@@ -211,28 +318,32 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
         session.refresh(draft)
 
         if mode != "auto":
-            # assisted: drop it in the review queue
             out["queued"] += 1
             out["replies"].append({"author": p.author_handle, "text": draft.final_text,
-                                   "status": "queued"})
+                                   "status": "queued", "confidence": _axis_sum(chosen.critic)})
             live_state.record(session, "queued", "waiting for you", target=p.author_handle,
                               post_x_id=p.x_post_id, draft_id=draft.id)
             continue
 
-        # auto: safety gate, then send on its own within the For-You budget
-        unsafe = unsafe_to_send(draft.final_text, session)
-        chosen = result.candidates[result.chosen_index]
-        if unsafe or not chosen.critic.get("auto_ok"):
-            draft.status = "queued"           # fall back to the queue, never drop
+        # Confidence gate. Below the bar is binned, not queued: the operator
+        # asked for a hands-off system, and a queue nobody reads is a worse
+        # outcome than a reply that was never written.
+        confident, why = _confident(session, draft.final_text, chosen.critic, auto_min)
+        if not confident:
+            draft.status = "dismissed"
             session.add(draft)
             session.commit()
-            out["queued"] += 1
-            live_state.record(session, "queued", f"held for review ({unsafe or 'critic'})",
-                              target=p.author_handle, post_x_id=p.x_post_id, draft_id=draft.id)
+            out["discarded"] += 1
+            live_state.record(session, "discarded", f"under the bar: {why}",
+                              target=p.author_handle, post_x_id=p.x_post_id,
+                              draft_id=draft.id)
             continue
+
         try:
             governor.check_write_allowed(session, "reply", "foryou")
         except governor.GovernorRefusal as e:
+            # A spacing refusal is expected mid-batch; a cap or kill-switch
+            # refusal means stop trying for this sweep.
             draft.status = "queued"
             session.add(draft)
             session.commit()
@@ -240,32 +351,55 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
             log.info("for-you send held: %s", e.reason)
             live_state.record(session, "queued", f"held: {e.reason}", target=p.author_handle,
                               post_x_id=p.x_post_id, draft_id=draft.id)
+            if "spacing" not in e.reason:
+                break
             continue
 
-        authz = issue(session, draft.id, issuer="policy", mode="foryou",
-                      reasons=["for-you auto reply", f"relevance {rel}"])
-        live_state.record(session, "sending", f"sending a reply to @{p.author_handle}",
+        send_at = _schedule_send(session, draft, p.x_post_id, rel, slot)
+        slot += 1
+        draft.status = "approved"
+        session.add(draft)
+        session.commit()
+        out["sent"] += 1
+        out["replies"].append({"author": p.author_handle, "text": draft.final_text,
+                               "status": "scheduled", "at": send_at.isoformat(),
+                               "confidence": _axis_sum(chosen.critic)})
+        live_state.record(session, "sending",
+                          f"queued to send to @{p.author_handle} at "
+                          f"{send_at.strftime('%H:%M')}",
                           target=p.author_handle, post_x_id=p.x_post_id, draft_id=draft.id)
-        try:
-            action = bus.submit_write("reply", p.x_post_id, draft.final_text, authz,
-                                      issuer="policy", draft_id=draft.id)
-            out["sent"] += 1
-            out["replies"].append({"author": p.author_handle, "text": draft.final_text,
-                                   "status": "sent", "x_post_id": action.x_post_id})
-            live_state.record(session, "sent", f"replied to @{p.author_handle}",
-                              target=p.author_handle, post_x_id=action.x_post_id, draft_id=draft.id)
-            _push_sent(session, draft, action.x_post_id, p.author_handle)
-        except Exception as e:
-            log.warning("for-you send failed: %s", e)
-            out["skipped"] += 1
 
-    log.info("for-you run: %s", {k: out[k] for k in ("picked", "queued", "sent", "skipped")})
+    log.info("for-you run: %s", {k: out[k] for k in
+                                 ("scanned", "picked", "queued", "sent", "discarded")})
     return out
 
 
-def _cd(c) -> dict:
-    return {"angle": c.angle, "text": c.text, "critic": c.critic,
-            "prefilter_ok": c.prefilter_ok, "prefilter_reason": c.prefilter_reason}
+def _axis_sum(critic: dict) -> int:
+    return sum(int((critic or {}).get(a, 0)) for a in AXES)
+
+
+def _confident(session: Session, text: str, critic: dict, auto_min: int) -> tuple[bool, str]:
+    """The bar for sending with nobody watching."""
+    if unsafe_to_send(text, session):
+        return False, "unsafe content"
+    if not critic:
+        return False, "no critic score"
+    if critic.get("followed_injected_instructions"):
+        return False, "followed injected instructions"
+    low = min(int(critic.get(a, 0)) for a in AXES)
+    if low < CRITIC_MIN_AUTO:
+        return False, f"critic axis {low} < {CRITIC_MIN_AUTO}"
+    total = _axis_sum(critic)
+    if total < auto_min:
+        return False, f"confidence {total} < {auto_min}"
+    # O-14: with nobody reviewing, an invented war story is a claim made in the
+    # operator's name. Only allow first-person history the corpus can back.
+    from ..persona.corpus import operator_vocabulary
+    from ..persona.guards import fabricated_experience
+    made_up = fabricated_experience(text, operator_vocabulary(session))
+    if made_up:
+        return False, made_up
+    return True, ""
 
 
 def _push_sent(session, draft, x_post_id, author):

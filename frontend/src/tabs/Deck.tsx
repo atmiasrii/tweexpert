@@ -133,8 +133,8 @@ function ForYouAuto() {
         </button>
       </div>
       <div className="text-[12px] text-muted">
-        every <b className="text-ink">{c.foryou_interval_min ?? 5} min</b>, scans up to{" "}
-        <b className="text-ink">{c.foryou_per_run ?? 5}</b> posts ·{" "}
+        every <b className="text-ink">{c.foryou_interval_min ?? 90} min</b>, answers up to{" "}
+        <b className="text-ink">{c.foryou_per_run ?? 10}</b> different people ·{" "}
         <select value={c.foryou_mode ?? "auto"} onChange={(e) => save.mutate({ foryou_mode: e.target.value })}
           className="bg-transparent border border-rule rounded-sm px-1 py-0.5 text-[12px]">
           <option value="auto">auto-send</option>
@@ -142,11 +142,14 @@ function ForYouAuto() {
         </select>
       </div>
       <div className="text-[11.5px] text-faint">
-        sent today: <span className="num">{c.sent_today ?? 0}</span>/{c.cap ?? 30} ·
-        replies still space out ~9 min apart to stay safe
+        sent today: <span className="num">{c.sent_today ?? 0}</span>/{c.cap ?? 49} ·
+        sends go out ~9 min apart, so a batch of 10 lands over about 90 minutes
       </div>
       {on && c.foryou_mode === "auto" && (
-        <div className="text-[11px] text-warn">Sends to strangers on its own once Quill is live.</div>
+        <div className="text-[11px] text-warn">
+          Sends to strangers on its own once Quill is live. Only replies that clear
+          the confidence bar go out; the rest are binned, not queued.
+        </div>
       )}
     </div>
   );
@@ -159,7 +162,14 @@ function ForYou() {
 
   const scan = useMutation({
     mutationFn: () => api.post("/api/live/foryou"),
-    onSuccess: (d) => { qc.invalidateQueries({ queryKey: ["discover", "queue"] }); toast({ tone: "success", title: "Scanned For You", detail: `picked ${d.picked ?? 0}, sent ${d.sent ?? 0}, queued ${d.queued ?? 0}.` }); },
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["discover", "queue"] });
+      const bits = [`read ${d.scanned ?? 0}`, `answered ${d.picked ?? 0}`];
+      if (d.sent) bits.push(`${d.sent} queued to send`);
+      if (d.queued) bits.push(`${d.queued} for you`);
+      if (d.discarded) bits.push(`${d.discarded} binned under the bar`);
+      toast({ tone: "success", title: "Scanned For You", detail: bits.join(" · ") });
+    },
     onError: (e) => reportError(e, "Could not scan For You"),
   });
   const promote = useMutation({

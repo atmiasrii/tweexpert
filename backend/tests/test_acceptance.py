@@ -111,10 +111,17 @@ def test_t03_gate_not_auto_mode(session):
 
 
 def test_t03_gate_shadow_incomplete(session):
+    """The shadow gate is opt-in now (the operator turned it off), so the test
+    enables it and checks it still refuses an account that has not served."""
+    from quill.db.settings_store import set_setting
     from quill.pipeline.policy import evaluate_auto
     ctx, acc, _ = _passing_ctx(session)
     acc.shadow_reviewed_count = 0
     session.add(acc); session.commit()
+
+    assert evaluate_auto(session, ctx).allowed, "gate off by default"
+
+    set_setting(session, "require_shadow", True)
     d = evaluate_auto(session, ctx)
     assert not d.allowed and "shadow" in d.failed_reason
 
@@ -173,12 +180,21 @@ def test_t03_gate_governor_budget(session):
 
 
 # ---------------------------------------------------------------- T-04
-def test_t04_cannot_auto_before_shadow(auth_client):
+def test_t04_cannot_auto_before_shadow(auth_client, session):
+    """Same gate over HTTP: refused while require_shadow is on, allowed once the
+    operator has turned it off."""
+    from quill.db.settings_store import set_setting
     r = auth_client.post("/api/accounts", json={"handle": "freshacct", "tier": "B"})
     assert r.status_code == 200
     acc_id = r.json()["id"]
-    r2 = auth_client.post(f"/api/accounts/{acc_id}/mode", json={"mode": "auto"})
-    assert r2.status_code == 409
+
+    set_setting(session, "require_shadow", True)
+    assert auth_client.post(f"/api/accounts/{acc_id}/mode",
+                            json={"mode": "auto"}).status_code == 409
+
+    set_setting(session, "require_shadow", False)
+    assert auth_client.post(f"/api/accounts/{acc_id}/mode",
+                            json={"mode": "auto"}).status_code == 200
 
 
 # ---------------------------------------------------------------- T-05

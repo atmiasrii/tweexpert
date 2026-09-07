@@ -8,8 +8,11 @@ from datetime import datetime, timezone
 from sqlmodel import Session, select
 
 from ..bus.action_bus import get_bus
+from ..config import get_settings
 from ..db.models import Account
-from ..defaults import POLL_INTERVAL_TIER, POLL_JITTER_FRAC
+from ..db.settings_store import get_setting
+from ..defaults import (DEEP_READS_PER_SWEEP, POLL_INTERVAL_TIER,
+                        POLL_JITTER_FRAC)
 from ..governor import governor
 from ..logging_setup import get_logger
 from . import live_state, pipeline
@@ -75,12 +78,66 @@ def watch_foryou(session: Session, limit: int = 15) -> dict:
     return summary
 
 
-def watch_all(session: Session) -> dict:
-    accounts = session.exec(
+def sweep_home(session: Session) -> dict:
+    """One read of the home timeline, routed to every watched author in it.
+
+    This replaces polling each account separately. Twenty accounts at one read
+    each every three minutes is 400 reads an hour, which is what kept emptying
+    the daily budget by lunchtime. The home timeline already contains posts from
+    everyone the operator follows, so a single read covers the whole watchlist
+    and detection is as fast as the sweep interval.
+    """
+    if governor.read_budget_left(session) <= 0:
+        return {"skipped": "read budget"}
+    bus = get_bus()
+    live_state.record(session, "watching", "checking your timeline for new posts",
+                      target="timeline")
+    posts = bus.submit_read("presence", "home") or []
+    governor.record_read(session, 1)
+
+    op = get_settings().operator_handle.lower()
+    watched = {a.handle.lower(): a for a in session.exec(
+        select(Account).where(Account.active == True)).all()}  # noqa: E712
+
+    summary = {"source": "home", "seen": len(posts), "polled": 0,
+               "queued": 0, "shadow": 0, "discarded": 0, "silent": 0,
+               "auto_scheduled": 0}
+    # Oldest first, so the high-water mark advances monotonically.
+    for post in reversed(posts):
+        handle = (post.author_handle or "").lower()
+        if handle == op or handle not in watched:
+            continue
+        acc = watched[handle]
+        if acc.high_water_post_id and post.x_post_id <= acc.high_water_post_id:
+            continue                                   # already seen (I-03)
+        if post.kind == "retweet" and not post.text:
+            continue
+        oc = pipeline.process_post(session, post, acc)
+        summary["polled"] += 1
+        summary[oc.status] = summary.get(oc.status, 0) + 1
+        acc.high_water_post_id = post.x_post_id
+        session.add(acc)
+        session.commit()
+    return summary
+
+
+def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A",)) -> dict:
+    """The home sweep, plus a direct read of the highest-tier profiles.
+
+    The direct reads are a backstop: the algorithm does not put everything a
+    followed account posts on the timeline, and tier A is where missing a post
+    costs the most. They are budgeted, so they stop before the sweep does.
+    """
+    summary = sweep_home(session)
+    if summary.get("skipped"):
+        return summary
+
+    accounts = [a for a in session.exec(
         select(Account).where(Account.active == True)).all()  # noqa: E712
+        if a.tier in deep_tiers]
     random.shuffle(accounts)                                   # randomised order (I-01)
-    summary = {"polled": 0, "queued": 0, "shadow": 0, "discarded": 0, "silent": 0}
-    for acc in accounts:
+    budget = int(get_setting(session, "deep_reads_per_sweep", DEEP_READS_PER_SWEEP))
+    for acc in accounts[:budget]:
         for oc in watch_once(session, acc):
             summary["polled"] += 1
             summary[oc.status] = summary.get(oc.status, 0) + 1

@@ -94,7 +94,9 @@ def _engine_jobs(scheduler: BackgroundScheduler):
 
     scheduler.add_job(heartbeat, "interval", seconds=HEARTBEAT_INTERVAL_S, id="session_hb")
     scheduler.add_job(canary, "interval", minutes=30, id="canary")
-    scheduler.add_job(watch, "interval", minutes=3, id="watch")
+    # 90s: one home-timeline read covers the whole watchlist, so a new
+    # post is seen inside the 1-15 min window the research calls optimal.
+    scheduler.add_job(watch, "interval", seconds=90, id="watch")
     scheduler.add_job(presence, "interval", minutes=17, id="presence")
     scheduler.add_job(sends, "interval", seconds=30, id="sends")
     scheduler.add_job(searches, "interval", minutes=5, id="searches")

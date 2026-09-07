@@ -9,6 +9,7 @@ Selector resolution tries primary then fallbacks; total miss => SelectorMiss.
 from __future__ import annotations
 
 import random
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -173,8 +174,59 @@ class PlaywrightEngine:
             media = art.locator('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]').count() > 0
         except Exception:
             pass
+
+        # Post age and engagement counts. Without these the freshness term of
+        # the relevance score is always zero, the 90-minute skip gate never
+        # fires, and the thread-saturation term is always 1.0 — which is what
+        # made a real For You post unable to clear the auto threshold at all.
+        created_at = None
+        try:
+            stamp = art.locator("time").first.get_attribute("datetime")
+            if stamp:
+                created_at = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+        counts = self._engagement_counts(art)
+
         return ParsedPost(x_post_id=pid, author_handle=author, text=text,
-                          url=link, media=media)
+                          url=link, media=media, created_at=created_at,
+                          likes=counts.get("like", 0),
+                          reposts=counts.get("retweet", 0),
+                          replies=counts.get("reply", 0),
+                          views=counts.get("views", 0))
+
+    # X renders counts only in the aria-label ("12 replies, 40 reposts, 300
+    # likes"), and hides the element entirely at zero, so a miss means zero.
+    _COUNT_RE = re.compile(r"([\d,.]+)\s*([KMB]?)", re.I)
+    _MULT = {"": 1, "K": 1_000, "M": 1_000_000, "B": 1_000_000_000}
+
+    @classmethod
+    def _parse_count(cls, raw: str) -> int:
+        m = cls._COUNT_RE.search(raw or "")
+        if not m:
+            return 0
+        try:
+            n = float(m.group(1).replace(",", ""))
+        except ValueError:
+            return 0
+        return int(n * cls._MULT.get(m.group(2).upper(), 1))
+
+    def _engagement_counts(self, art) -> dict:
+        out: dict[str, int] = {}
+        for key, testid in (("reply", "reply"), ("retweet", "retweet"),
+                            ("like", "like")):
+            try:
+                el = art.locator(f'[data-testid="{testid}"]').first
+                out[key] = self._parse_count(el.get_attribute("aria-label") or "")
+            except Exception:
+                out[key] = 0
+        try:
+            label = art.locator('a[href*="/analytics"]').first.get_attribute("aria-label")
+            out["views"] = self._parse_count(label or "")
+        except Exception:
+            out["views"] = 0
+        return out
 
     def _parse_timeline(self, handle: str, since_id: str = "") -> list[ParsedPost]:
         tweets, _ = self._find_all("tweet")

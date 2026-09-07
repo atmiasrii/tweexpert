@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # "not configured", which leaves whatever is already stored alone.
     login_password: str | None = None
 
+    # Start the worker and browser processes with the API, so one
+    # double-click of quill.bat brings the whole system up.
+    autostart_live: bool = True
+
     # --- storage --------------------------------------------------------
     data_dir: Path = DATA_DIR
     db_path: Path = DATA_DIR / "quill.db"

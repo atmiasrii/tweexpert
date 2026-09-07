@@ -17,6 +17,7 @@ from ..defaults import (DRAFT_TTL_S, FRESHNESS_WINDOW_AUTO_S, FRESHNESS_WINDOW_S
                         PER_ACCOUNT_DAILY_DRAFT_CAP, QUEUE_CAP,
                         RELEVANCE_THRESHOLD, RELEVANCE_THRESHOLD_AUTO)
 from ..governor import governor
+from ..governor.governor import GovernorRefusal
 from ..logging_setup import get_logger
 from ..notify import notifier
 from ..persona import engine as persona
@@ -261,6 +262,11 @@ def send_due_auto(session: Session) -> list[str]:
                                       authz, issuer="policy", draft_id=draft.id)
             sent.append(action.x_post_id)
             _post_send_push(session, draft, action.x_post_id)
+        except GovernorRefusal as e:
+            # Spacing or the burst guard: the send is still wanted, just not
+            # yet. Dropping it here is what silently lost scheduled replies.
+            log.info("auto send deferred: %s", e.reason)
+            remaining.append(item)
         except Exception as e:
             log.warning("auto send failed: %s", e)
     set_setting(session, "_pending_auto", remaining)

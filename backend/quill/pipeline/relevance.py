@@ -28,6 +28,8 @@ from sqlmodel import Session, select
 
 from ..browser.base import ParsedPost
 from ..db.models import Account, Person
+from ..db.settings_store import get_setting
+from ..defaults import FORYOU_TIER_WEIGHT
 from ..persona.voicecard import load_voice_card
 
 TIER_WEIGHT = {"A": 1.0, "B": 0.75, "C": 0.5}
@@ -45,15 +47,24 @@ def score(session: Session, post: ParsedPost, account: Account | None) -> float:
     card = load_voice_card(session)
     owned = [t.lower() for t in card.get("topics_owned", [])]
 
-    tier = account.tier if account else "C"
-    tier_w = TIER_WEIGHT.get(tier, 0.5)
+    # An unknown For You author is not on the watchlist, so they have no tier.
+    # Falling through to "C" (0.5) capped every For You post below the auto
+    # threshold no matter how good it was, which is why that path never fired.
+    if account:
+        tier_w = TIER_WEIGHT.get(account.tier, 0.5)
+    else:
+        tier_w = get_setting(session, "foryou_tier_weight", FORYOU_TIER_WEIGHT)
 
     # Topical match saturates fast on purpose. One clear hit on a topic the
     # operator owns is already enough to have something to say; dividing by the
     # length of the topic list punished posts for being about only one thing.
-    text = post.text.lower()
+    # Matched on stems, so "agent" in the voice card also matches "agents" and
+    # "agentic". A plain substring test missed those and scored the post zero.
+    words = set(re.findall(r"[a-z][a-z0-9'\-]*", post.text.lower()))
+    stems = {w.rstrip("s") for w in words} | words
     hits = sum(1 for topic in owned
-               if any(word in text for word in topic.split() if len(word) > 3))
+               if any(w.rstrip("s") in stems
+                      for w in topic.split() if len(w) > 3))
     topical = 0.0 if hits == 0 else 0.7 if hits == 1 else 1.0
 
     answerable = 1.0 if (_QUESTION.search(post.text) or _CONTESTABLE.search(post.text)) else 0.3

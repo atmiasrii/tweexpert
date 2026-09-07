@@ -6,8 +6,22 @@ and pipeline read from one place. Overridable via the settings table.
 from __future__ import annotations
 
 # --- Governor caps (S-01) ----------------------------------------------
-CAP_REPLIES_ASSISTED = 10
-CAP_REPLIES_AUTO = 4          # separate, lower global cap (Y-04)
+# One ceiling across every reply path, checked in addition to the per-mode caps
+# below. The per-mode numbers are deliberately loose now so that this total is
+# what actually binds; without it the three paths cannot see each other and the
+# real daily volume is their sum.
+#
+# 49 is the operator's choice. Context: X's May 2026 platform limit for a free
+# account is 200 replies/day (Premium lifts it), so the platform is not the
+# constraint. The ~50/day figure is the practitioner estimate of where spam and
+# deboost heuristics start reacting, and Premium does not change that.
+CAP_REPLIES_TOTAL = 49
+
+# The per-mode caps exist so one path cannot monopolise the day, but the
+# total above is the real ceiling, so they are set to it. Lower any of them
+# via settings to ration a single path.
+CAP_REPLIES_ASSISTED = CAP_REPLIES_TOTAL
+CAP_REPLIES_AUTO = CAP_REPLIES_TOTAL      # (Y-04)
 CAP_POSTS = 6
 CAP_THREADS = 1
 
@@ -37,8 +51,8 @@ FRESHNESS_WINDOW_S = 75 * 60
 FRESHNESS_WINDOW_AUTO_S = 30 * 60
 
 # --- Draft caps (R-03) -------------------------------------------------
-PER_ACCOUNT_DAILY_DRAFT_CAP = 1
-QUEUE_CAP = 12
+PER_ACCOUNT_DAILY_DRAFT_CAP = 3
+QUEUE_CAP = 60
 DRAFT_TTL_S = 3 * 60 * 60            # drafts expire after 3 hours
 
 # --- Poll intervals per tier (I-01) ------------------------------------
@@ -48,12 +62,22 @@ POLL_JITTER_FRAC = 0.30
 # --- Read budget (I-06) ------------------------------------------------
 # Raised from 400: a 20-account watchlist plus a For You scan every 5 minutes
 # burned the old budget by midday and idled the watcher.
-DAILY_READ_BUDGET = 1500
+DAILY_READ_BUDGET = 2500
 
 # --- For You auto-replies (own daily cap) ------------------------------
 # Kept so assisted + auto + foryou stays under ~50/day, the point where reply
 # volume starts tripping X's spam heuristics.
-CAP_REPLIES_FORYOU = 30
+CAP_REPLIES_FORYOU = CAP_REPLIES_TOTAL
+
+# For You sweep: how many unique authors one batch answers, and how long an
+# author is off-limits afterwards. Author-level cooldown did not exist before,
+# so one sweep could hand the same handle three replies.
+FORYOU_PER_RUN = 10
+FORYOU_AUTHOR_COOLDOWN_H = 24
+# Unknown For You authors are not on the watchlist, so they have no tier. The
+# old code fell through to "C" (0.5), which capped their score below the auto
+# threshold no matter how good the post was.
+FORYOU_TIER_WEIGHT = 0.75
 
 # --- Thread context (I-04) ---------------------------------------------
 THREAD_CONTEXT_DEPTH = 3
@@ -194,3 +218,8 @@ UNSAFE_PATTERNS = [
     r"\bhttps?://",                 # links
     r"#\w+",                        # hashtags (also Y-02)
 ]
+
+# Watcher: the home sweep covers the whole watchlist in one read; these are the
+# extra direct profile reads per sweep, as a backstop for tier A posts the
+# timeline buries.
+DEEP_READS_PER_SWEEP = 2

@@ -67,10 +67,15 @@ def evaluate_auto(session: Session, ctx: PolicyContext) -> PolicyDecision:
         return PolicyDecision(False, passed, "account not in auto mode")
     passed.append("auto mode")
 
-    # gate: shadow period complete
-    if not shadow_complete(session, ctx.account):
-        return PolicyDecision(False, passed, "shadow period not complete")
-    passed.append("shadow complete")
+    # gate: shadow period complete.
+    # Off by default at the operator's explicit request: they want every watched
+    # account replying on its own, gated on confidence rather than on a waiting
+    # period. `shadow_complete` is still computed and reported so the Watchlist
+    # can show the history, and setting `require_shadow` puts the gate back.
+    if get_setting(session, "require_shadow", False):
+        if not shadow_complete(session, ctx.account):
+            return PolicyDecision(False, passed, "shadow period not complete")
+        passed.append("shadow complete")
 
     # gate: relevance >= auto threshold
     thr = get_setting(session, "relevance_threshold_auto", RELEVANCE_THRESHOLD_AUTO)

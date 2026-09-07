@@ -225,6 +225,43 @@ def glued_words(text: str) -> str:
     return ""
 
 
+# --- 9. fabricated personal experience --------------------------------------
+# Logged as O-14 in docs/PERSONA_FINDINGS.md and the single biggest risk once
+# nobody is reviewing. Grounding an abstract post in a concrete case made the
+# model invent the case: "in our last sprint, we avoided refactoring the messy
+# API layer". There was no sprint. `invented_numbers` only catches the ones with
+# digits in them, so a first-person past-tense claim needs its own gate: it is
+# allowed only when the operator's own corpus actually contains something like
+# it, which is the difference between recalling and fabricating.
+_CLAIM_VERB = (r"(?:\w+ed|ran|shipped|built|wrote|saw|found|spent|tried|hit|"
+               r"cut|had|got|moved|broke|lost|kept|took|made)")
+# Auxiliaries and stative verbs are opinion, not a claim about what happened.
+_CLAIM = re.compile(
+    r"\b(i|we)\s+"
+    r"(?!am\b|are\b|is\b|will\b|would\b|could\b|should\b|might\b|may\b|"
+    r"think\b|guess\b|suspect\b|bet\b|wonder\b|hope\b|do\b|don'?t\b|"
+    r"can\b|can'?t\b|know\b|see\b|like\b|love\b|want\b|need\b|just\b)"
+    r"(?:\w+\s+){0,2}?" + _CLAIM_VERB + r"\b", re.I)
+
+
+def fabricated_experience(text: str, corpus: set[str] | None = None) -> str:
+    """Reject a first-person past-tense claim the operator's corpus cannot back.
+
+    `corpus` is the set of content words across the operator's own posts. An
+    empty or missing corpus means we cannot vouch for any claim, so all of them
+    are rejected: silence beats a made-up war story sent in someone's name.
+    """
+    m = _CLAIM.search(text or "")
+    if not m:
+        return ""
+    if not corpus:
+        return "first-person claim with no corpus to back it"
+    claim_words = _content_words(text[m.start():])
+    if claim_words & corpus:
+        return ""
+    return "fabricated first-person experience"
+
+
 # --- combined ----------------------------------------------------------------
 def check(text: str, parent_text: str, archetype: str = "") -> str:
     """Return the first failure reason, or "" when the reply is clean."""

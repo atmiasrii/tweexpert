@@ -75,6 +75,18 @@ def create_app(run_startup: bool = True) -> FastAPI:
                 if sync_login_password(sess):
                     log.info("login password updated from .env")
                 startup_reconcile(sess)          # O-03
+                # One double-click of quill.bat should bring the whole system
+                # up. Going through launcher.start (rather than the bat file
+                # spawning them) is what records live_pids, without which the
+                # dashboard's Start/Stop button and writes_deferred() both
+                # break and two processes fight over the Chromium profile.
+                if s.autostart_live:
+                    try:
+                        from ..ops.launcher import start as launch_start
+                        res = launch_start(sess)
+                        log.info("autostart: %s", res.get("started") or "already running")
+                    except Exception as e:      # never block the API on this
+                        log.warning("autostart failed: %s", e)
             log.info("Quill API started (engine=%s)", s.browser_engine)
 
     return app

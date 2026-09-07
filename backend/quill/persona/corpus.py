@@ -7,6 +7,8 @@ replies to the same account. Edits are stored with higher weight (L-02).
 """
 from __future__ import annotations
 
+import time
+
 import csv
 import io
 import json
@@ -102,6 +104,9 @@ def add_edit_sample(session: Session, text: str) -> None:
     import_samples(session, [{"text": text, "metrics": {}}], source="edit", weight=2.5)
 
 
+_VOCAB_CACHE: tuple[float, set[str]] | None = None
+
+
 def retrieve_fewshot(session: Session, target_text: str,
                      account_handle: str = "") -> list[str]:
     llm = LLM()
@@ -130,3 +135,22 @@ def retrieve_fewshot(session: Session, target_text: str,
 
 def corpus_size(session: Session) -> int:
     return len(session.exec(select(StyleSample)).all())
+
+def operator_vocabulary(session) -> set[str]:
+    """Every content word the operator has actually written.
+
+    Used by `guards.fabricated_experience` to tell recall from invention: a
+    first-person claim is only allowed to mention things this operator has
+    demonstrably talked about. Cached for a minute because the sweep asks for it
+    once per draft.
+    """
+    from .guards import _content_words
+    global _VOCAB_CACHE
+    now = time.time()
+    if _VOCAB_CACHE and now - _VOCAB_CACHE[0] < 60:
+        return _VOCAB_CACHE[1]
+    words: set[str] = set()
+    for sm in session.exec(select(StyleSample)).all():
+        words |= _content_words(sm.text)
+    _VOCAB_CACHE = (now, words)
+    return words

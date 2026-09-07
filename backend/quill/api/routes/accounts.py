@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from ...db.engine import get_session
 from ...db.models import Account, Draft
+from ...db.settings_store import get_setting
 from ...pipeline.policy import shadow_complete
 from ..auth import require_auth
 from ..events import publish
@@ -84,8 +85,10 @@ def set_mode(account_id: int, body: ModeBody,
         raise HTTPException(404)
     if body.mode not in ("shadow", "assisted", "auto"):
         raise HTTPException(400, "invalid mode")
-    # T-04 / Y-03: cannot enter auto before shadow period completes
-    if body.mode == "auto" and not shadow_complete(session, acc):
+    # T-04 / Y-03: the shadow period used to be a hard gate on entering auto.
+    # The operator turned it off deliberately; `require_shadow` puts it back.
+    if (body.mode == "auto" and get_setting(session, "require_shadow", False)
+            and not shadow_complete(session, acc)):
         raise HTTPException(
             409, "shadow period not complete: needs configured days + reviewed drafts")
     acc.mode = body.mode

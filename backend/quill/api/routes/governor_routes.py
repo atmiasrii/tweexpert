@@ -10,7 +10,8 @@ from ...db.engine import get_session
 from ...db.models import Account
 from ...db.settings_store import get_setting
 from ...defaults import (CAP_POSTS, CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO,
-                        CAP_THREADS, DAILY_READ_BUDGET)
+                        CAP_REPLIES_FORYOU, CAP_REPLIES_TOTAL, CAP_THREADS,
+                        DAILY_READ_BUDGET)
 from ...governor import governor
 from ...ops import session_guard
 from ..auth import require_auth
@@ -48,7 +49,18 @@ def get_governor(session: Session = Depends(get_session), _=Depends(require_auth
             # stops pulling posts for the rest of the day, so the UI has to be
             # able to say that out loud.
             "read_budget": get_setting(session, "daily_read_budget", DAILY_READ_BUDGET),
+            # One ceiling across every reply path. This is the number that
+            # actually stops the day, so the dashboard shows this one.
+            "replies_total": {
+                "used": day.replies_auto + day.replies_assisted + day.replies_foryou,
+                "cap": get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL),
+            },
+            "replies_foryou": {"used": day.replies_foryou,
+                               "cap": get_setting(session, "foryou_daily_cap", CAP_REPLIES_FORYOU)},
         },
+        # Why replies are or are not going out right now, in one place, so the
+        # operator never has to guess which of five flags is the quiet one.
+        "auto_blocked_by": _auto_blocked_by(session, day),
         "kill_switch": day.kill_switch or get_setting(session, "kill_switch", False),
         "quiet_now": governor.in_quiet_hours(session),
         "next_slot": governor.next_available_slot(session).isoformat(),
@@ -56,6 +68,23 @@ def get_governor(session: Session = Depends(get_session), _=Depends(require_auth
         "canary_ok": h.canary_ok if h else True,
         "no_auto_today": day.no_auto_today,
     }
+
+
+def _auto_blocked_by(session, day) -> str | None:
+    """The single reason nothing is being sent, or None when it is armed."""
+    if day.kill_switch or get_setting(session, "kill_switch", False):
+        return "kill switch is on"
+    if governor.in_quiet_hours(session):
+        return "quiet hours"
+    if day.no_auto_today:
+        return "rest day: Quill takes a day off at random to look human"
+    total = day.replies_auto + day.replies_assisted + day.replies_foryou
+    cap = get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL)
+    if total >= cap:
+        return f"daily reply limit reached ({total}/{cap})"
+    if governor.read_budget_left(session) <= 0:
+        return "daily reading limit reached, so nothing new is being found"
+    return None
 
 
 class KillBody(BaseModel):

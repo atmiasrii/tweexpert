@@ -48,6 +48,15 @@ export function Home({ go }: { go: (t: TabId) => void }) {
       {/* The one control, above everything it governs. */}
       <LaunchPanel go={go} />
 
+      {/* Nothing sending is normally one specific reason. Say which. */}
+      {g?.auto_blocked_by && (
+        <div className="rounded-md border border-[color:var(--warn)] bg-[color:var(--warn-soft)]
+          px-3.5 py-2.5 text-[13px] text-ink flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[color:var(--warn)] shrink-0" />
+          <span>Not replying right now: <b>{g.auto_blocked_by}</b>. Drafts keep piling up either way.</span>
+        </div>
+      )}
+
       {/* The four numbers that answer "what's going on" without reading a word. */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {/* Amber means "you have to do something", everywhere in the app. */}
@@ -57,9 +66,15 @@ export function Home({ go }: { go: (t: TabId) => void }) {
           sub={queueN > 0 ? "replies to review" : "queue is clear"}
           onClick={() => go("Autopilot")}
         />
+        {/* One ceiling across every path. This is the number that stops the
+            day, so it is the one shown. */}
         <StatCard
-          label="Sent today" value={sentToday} tone={sentToday > 0 ? "go" : "neutral"}
-          sub={u ? `${u.replies_auto.used}/${u.replies_auto.cap} on its own` : undefined}
+          label="Sent today"
+          value={u?.replies_total ? u.replies_total.used : sentToday}
+          tone={g?.auto_blocked_by ? "warn" : sentToday > 0 ? "go" : "neutral"}
+          sub={u?.replies_total
+            ? `${u.replies_total.cap - u.replies_total.used} left of ${u.replies_total.cap} today`
+            : undefined}
         />
         <StatCard
           label="Accounts watched" value={accounts.data?.length ?? "—"}
