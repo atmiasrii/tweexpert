@@ -62,6 +62,36 @@ class SelectorMiss(BrowserError):
         self.screenshot_path = screenshot_path
 
 
+class PostUnavailable(BrowserError):
+    """The post we were told to reply to is gone, protected, or redirected."""
+
+    def __init__(self, x_post_id: str, screenshot_path: str = ""):
+        super().__init__(f"post unavailable: {x_post_id}")
+        self.x_post_id = x_post_id
+        self.screenshot_path = screenshot_path
+
+
+class SendRejected(BrowserError):
+    """Observed not to have sent, before or instead of posting. Safe to retry."""
+
+    def __init__(self, reason: str, screenshot_path: str = ""):
+        super().__init__(f"send rejected: {reason}")
+        self.screenshot_path = screenshot_path
+
+
+class SendNotConfirmed(BrowserError):
+    """Clicked send, could not find the reply afterwards.
+
+    Deliberately distinct from a failure: the reply may or may not be live, so
+    it must never be retried automatically and must never be recorded as sent.
+    """
+
+    def __init__(self, x_post_id: str, screenshot_path: str = ""):
+        super().__init__(f"send not confirmed for {x_post_id}")
+        self.x_post_id = x_post_id
+        self.screenshot_path = screenshot_path
+
+
 class BrowserEngine(Protocol):
     name: str
 
@@ -74,6 +104,7 @@ class BrowserEngine(Protocol):
     def presence(self, kind: str) -> list[ParsedPost]: ...
     def canary(self) -> CanaryResult: ...
     def publish(self, text: str) -> str: ...
-    def reply(self, parent_x_id: str, text: str) -> str: ...
+    def reply(self, parent_x_id: str, text: str,
+              permalink: str = "", author: str = "") -> str: ...
     def thread(self, texts: list[str]) -> list[str]: ...
     def delete_post(self, x_post_id: str) -> bool: ...

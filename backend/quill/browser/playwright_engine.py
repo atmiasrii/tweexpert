@@ -17,8 +17,13 @@ from pathlib import Path
 
 from ..config import get_settings
 from ..logging_setup import get_logger
-from .base import (CanaryResult, ChallengeDetected, ParsedPost, SelectorMiss,
+from ..pipeline.pipeline import permalink_for
+from .base import (CanaryResult, ChallengeDetected, ParsedPost,
+                   PostUnavailable, SelectorMiss, SendNotConfirmed,
+                   SendRejected,
                    SessionDead)
+from .reply_verify import (status_id_from_href, target_article_selectors,
+                           texts_match)
 from .selectors import SelectorEntry, load_registry
 
 log = get_logger("quill.browser")
@@ -412,15 +417,170 @@ class PlaywrightEngine:
         time.sleep(random.uniform(2, 4))
         return self._last_own_id()
 
-    def reply(self, parent_x_id: str, text: str) -> str:
-        self._goto(f"https://x.com/i/status/{parent_x_id}")
+    # Writes get the same patience reads got. Every lookup below used to fire
+    # once, immediately, racing X's client-side render.
+    WRITE_WAIT_MS = 15000
+    supports_exists = True
+
+    def _open_post(self, x_post_id: str, permalink: str = "",
+                   author: str = "") -> None:
+        """Navigate to one specific post and prove we arrived.
+
+        The old code went to /i/status/{id}, which redirects; after a redirect
+        there is no way to tell a loaded post from an error page, so a reply
+        could be typed against whatever happened to be on screen.
+        """
+        url = permalink or permalink_for(author, x_post_id)
+        self._goto(url)
+        if f"/status/{x_post_id}" not in (self._page.url or ""):
+            raise PostUnavailable(x_post_id, self._capture("post_unavailable"))
+
+    def _target_article(self, x_post_id: str):
+        """The article for this exact post, never `.first` of whatever loaded."""
+        deadline = time.time() + self.WRITE_WAIT_MS / 1000.0
+        while True:
+            for sel in target_article_selectors(x_post_id):
+                try:
+                    loc = self._page.locator(sel)
+                    if loc.count() > 0:
+                        return loc.first
+                except Exception:
+                    continue
+            if time.time() >= deadline:
+                raise SelectorMiss("target_article", self._capture("target_miss"))
+            time.sleep(0.5)
+
+    def find_reply(self, x_post_id: str, text: str) -> str:
+        """Our own reply to this post if it is already there, else "".
+
+        Used to verify a send, and before sending so a retry cannot post the
+        same thing twice.
+        """
+        op = (self.s.operator_handle or "").lstrip("@").lower()
+        try:
+            arts, _ = self._find_all("tweet", wait_ms=self.WRITE_WAIT_MS)
+        except SelectorMiss:
+            return ""
+        for i in range(min(arts.count(), 30)):
+            art = arts.nth(i)
+            try:
+                href = art.locator('a[href*="/' + op + '/status/"]').first.get_attribute("href")
+            except Exception:
+                continue
+            rid = status_id_from_href(href or "")
+            if not rid or rid == x_post_id:
+                continue                      # that is the post we replied to
+            try:
+                body = art.locator(self.reg.get("tweet_text").primary).first.inner_text()
+            except Exception:
+                continue
+            if texts_match(text, body):
+                return rid
+        return ""
+
+    def exists(self, idempotency_key: str, text: str) -> bool:
+        """Kept for the reconcile probe; the real work happens in find_reply."""
+        return False
+
+    def reply(self, parent_x_id: str, text: str, permalink: str = "",
+              author: str = "") -> str:
+        """Reply to one post and return the id of the reply actually made.
+
+        Raises rather than returning "": an empty id used to be accepted as
+        success, so a reply that never posted was recorded as sent.
+        """
+        self._open_post(parent_x_id, permalink, author)
+
+        already = self.find_reply(parent_x_id, text)
+        if already:
+            log.info("reply already present on %s, not posting again", parent_x_id)
+            return already
+
+        target = self._target_article(parent_x_id)
         self._human_scroll(1)                    # read replies first (E-11)
-        self._human_move_click(self._find("reply_button"))
-        time.sleep(random.uniform(0.5, 1.2))
-        self._human_type(self._find("composer"), text)
-        self._human_move_click(self._find("post_button"))
-        time.sleep(random.uniform(2, 4))
-        return self._last_own_id()
+
+        # On a status page X renders the reply box inline, bound to the focal
+        # post. Using it avoids clicking a reply button on the wrong article.
+        scope = self._page
+        composer = self._composer_in(scope)
+        if composer is None:
+            self._human_move_click(target.locator(
+                self.reg.get("reply_button").primary).first)
+            time.sleep(random.uniform(0.5, 1.2))
+            dialog = self._page.locator('[role="dialog"]')
+            scope = dialog.first if dialog.count() else self._page
+            composer = self._composer_in(scope, wait=True)
+        if composer is None:
+            raise SelectorMiss("composer", self._capture("composer_miss"))
+
+        self._human_type(composer, text)
+
+        # Check the box before sending. A mistyped reply is recoverable here
+        # and not afterwards.
+        try:
+            typed = composer.inner_text()
+        except Exception:
+            typed = text
+        if not texts_match(text, typed):
+            raise SendRejected("composer text does not match the draft",
+                               self._capture("composer_mismatch"))
+
+        self._human_move_click(self._send_button_in(scope))
+        time.sleep(random.uniform(2.0, 4.0))
+
+        # Verify against a fresh load. An optimistic article plus a "Retry"
+        # toast looks identical to success in the live DOM, and that is exactly
+        # the false positive that made failed sends look sent.
+        self._open_post(parent_x_id, permalink, author)
+        rid = self.find_reply(parent_x_id, text)
+        if rid:
+            return rid
+
+        # Deep threads hide new replies behind "show more"; check our own
+        # timeline before giving up.
+        try:
+            self._goto("https://x.com/" + self.s.operator_handle + "/with_replies")
+            rid = self.find_reply(parent_x_id, text)
+            if rid:
+                return rid
+        except Exception:
+            pass
+        raise SendNotConfirmed(parent_x_id, self._capture("send_unconfirmed"))
+
+    def _composer_in(self, scope, wait: bool = False):
+        entry = self.reg.get("composer")
+        deadline = time.time() + (self.WRITE_WAIT_MS / 1000.0 if wait else 0)
+        while True:
+            for sel in entry.all():
+                try:
+                    loc = scope.locator(sel)
+                    if loc.count() > 0 and loc.first.is_visible():
+                        return loc.first
+                except Exception:
+                    continue
+            if time.time() >= deadline:
+                return None
+            time.sleep(0.5)
+
+    def _send_button_in(self, scope):
+        """The send button of the composer we are actually in.
+
+        The inline reply box uses tweetButtonInline, but the old lookup took
+        the first selector matching anywhere on the page, so a tweetButton
+        elsewhere in the DOM could win.
+        """
+        for sel in ('[data-testid="tweetButtonInline"]',
+                    '[data-testid="tweetButton"]',
+                    'button[data-testid*="tweetButton"]'):
+            try:
+                loc = scope.locator(sel)
+                for i in range(loc.count()):
+                    btn = loc.nth(i)
+                    if btn.is_visible() and btn.is_enabled():
+                        return btn
+            except Exception:
+                continue
+        raise SelectorMiss("reply_post_button", self._capture("send_button_miss"))
 
     def thread(self, texts: list[str]) -> list[str]:
         ids = []

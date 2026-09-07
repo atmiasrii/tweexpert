@@ -14,7 +14,9 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from ..config import get_settings
-from .base import CanaryResult, ChallengeDetected, ParsedPost, SessionDead
+from .base import (CanaryResult, ChallengeDetected, ParsedPost,
+                   PostUnavailable, SendNotConfirmed, SendRejected,
+                   SessionDead)
 from .selectors import load_registry
 
 _ids = itertools.count(1950000000000000000)
@@ -151,12 +153,32 @@ class FixtureEngine:
         self.posted.append({"x_post_id": pid, "text": text, "kind": "post"})
         return pid
 
-    def reply(self, parent_x_id: str, text: str) -> str:
+    # Test hooks, so the send-failure paths can be exercised without a browser.
+    reply_outcome = "ok"          # ok | unverified | rejected | unavailable
+    reply_calls = 0
+
+    def reply(self, parent_x_id: str, text: str, permalink: str = "",
+              author: str = "") -> str:
         self._guard()
+        type(self).reply_calls += 1
+        self.last_reply = {"parent": parent_x_id, "text": text,
+                           "permalink": permalink, "author": author}
+        if self.reply_outcome == "unavailable":
+            raise PostUnavailable(parent_x_id)
+        if self.reply_outcome == "rejected":
+            raise SendRejected("fixture: rejected")
+        if self.reply_outcome == "unverified":
+            raise SendNotConfirmed(parent_x_id)
         pid = str(next(_ids))
         self.posted.append({"x_post_id": pid, "text": text, "kind": "reply",
-                            "parent": parent_x_id})
+                            "parent": parent_x_id, "permalink": permalink})
         return pid
+
+    def find_reply(self, x_post_id: str, text: str) -> str:
+        for p in self.posted:
+            if p.get("parent") == x_post_id and p.get("text") == text:
+                return p["x_post_id"]
+        return ""
 
     def thread(self, texts: list[str]) -> list[str]:
         self._guard()
@@ -174,6 +196,11 @@ class FixtureEngine:
         self.deleted.append(x_post_id)
         self.posted = [p for p in self.posted if p["x_post_id"] != x_post_id]
         return True
+
+    # Declared rather than duck-typed: ThreadedEngine forwards every
+    # attribute, so hasattr(engine, "exists") is always True and cannot
+    # be used to tell whether an engine can really answer this.
+    supports_exists = True
 
     def exists(self, idempotency_key: str, text: str) -> bool:
         """Reconciliation probe (Q-02): does a matching post exist?"""

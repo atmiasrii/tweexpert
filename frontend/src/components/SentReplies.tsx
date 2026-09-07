@@ -5,9 +5,10 @@
 // Left: the list, newest first, each row colour-coded by where it got to.
 // Right: the one you clicked, with its timeline and its numbers over time.
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { Badge, Card, EmptyState, ErrorState, Help, SectionTitle, Skeleton, cx } from "./ui";
+import { useToast } from "./Toast";
+import { Badge, Button, Card, EmptyState, ErrorState, Help, SectionTitle, Skeleton, cx } from "./ui";
 import { IconArrowRight, IconCheck } from "./Icons";
 
 /* One colour per stage, used identically in the list, the detail and the
@@ -22,6 +23,7 @@ export const STAGE: Record<string, { label: string; tone: Tone }> = {
   measured: { label: "no reply yet",   tone: "neutral" },
   answered: { label: "got a reply",    tone: "go" },
   failed:   { label: "failed",         tone: "risk" },
+  unverified: { label: "not confirmed", tone: "risk" },
   skipped:  { label: "skipped",        tone: "neutral" },
 };
 
@@ -124,6 +126,18 @@ function StageDot({ stage }: { stage: string }) {
 
 /* ── one reply, in full ─────────────────────────────────────── */
 function Detail({ draftId }: { draftId: number | null }) {
+  const qc = useQueryClient();
+  const { reportError } = useToast();
+  const resolve = useMutation({
+    mutationFn: (body: { posted: boolean }) =>
+      api.post(`/api/drafts/${draftId}/resolve`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sent-replies"] });
+      qc.invalidateQueries({ queryKey: ["sent-reply", draftId] });
+      qc.invalidateQueries({ queryKey: ["queue"] });
+    },
+    onError: (e) => reportError(e, "Could not record that"),
+  });
   const q = useQuery({
     queryKey: ["sent-reply", draftId],
     queryFn: () => api.get(`/api/analytics/sent/${draftId}`),
@@ -170,6 +184,25 @@ function Detail({ draftId }: { draftId: number | null }) {
         <div className="text-[11px] text-muted mb-0.5">your reply</div>
         <div className="tweet !text-[13.5px]">{d.text}</div>
       </div>
+
+      {/* The one state that needs a human: Quill clicked send and then could
+          not find the reply, so it refuses to guess either way. */}
+      {d.stage === "unverified" && (
+        <div className="rounded-sm border border-[color:var(--warn)]
+          bg-[color:var(--warn-soft)] p-2.5 space-y-2">
+          <div className="text-[12.5px] text-ink">
+            Open the post and check. Did this reply go out?
+          </div>
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="success"
+              loading={resolve.isPending}
+              onClick={() => resolve.mutate({ posted: true })}>Yes, it is live</Button>
+            <Button size="sm" variant="default"
+              loading={resolve.isPending}
+              onClick={() => resolve.mutate({ posted: false })}>No, send it again</Button>
+          </div>
+        </div>
+      )}
 
       {d.error && (
         <div className="rounded-sm border border-[color:var(--risk)]

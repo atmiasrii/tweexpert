@@ -188,7 +188,7 @@ def _cooldown_authors(session: Session, hours: int) -> set[str]:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     rows = session.exec(
         select(Draft).where(Draft.kind == "reply",
-                            Draft.status.in_(["sent", "approved", "ready"]),
+                            Draft.status.in_(["sent", "approved", "ready", "needs_review"]),
                             Draft.created_at >= cutoff)).all()
     out: set[str] = set()
     for d in rows:
@@ -369,8 +369,11 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
                           f"{send_at.strftime('%H:%M')}",
                           target=p.author_handle, post_x_id=p.x_post_id, draft_id=draft.id)
 
-    log.info("for-you run: %s", {k: out[k] for k in
-                                 ("scanned", "picked", "queued", "sent", "discarded")})
+    # Include why posts were dropped: "picked 0 of 12" is not actionable on
+    # its own, and this is the first question anyone asks.
+    log.info("for-you run: %s | skipped: %s",
+             {k: out[k] for k in ("scanned", "picked", "queued", "sent", "discarded")},
+             {k: v for k, v in (out.get("why_skipped") or {}).items() if v})
     return out
 
 

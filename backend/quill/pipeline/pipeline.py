@@ -37,18 +37,69 @@ class Outcome:
     send_at: datetime | None = None
 
 
+def permalink_for(author_handle: str, x_post_id: str, stored_url: str = "") -> str:
+    """The address to open in order to reply to a post.
+
+    Prefer the link we actually scraped. Otherwise rebuild the canonical form,
+    which is what the selector registry's `post` surface describes. The
+    handle-less /i/status/ form is only a last resort because it redirects, and
+    a redirect makes it impossible to prove we landed on the right post.
+    """
+    if stored_url and "/status/" in stored_url:
+        if stored_url.startswith("http"):
+            return stored_url
+        return f"https://x.com{stored_url}"
+    handle = (author_handle or "").lstrip("@")
+    if handle and x_post_id:
+        return f"https://x.com/{handle}/status/{x_post_id}"
+    return f"https://x.com/i/status/{x_post_id}" if x_post_id else ""
+
+
 def upsert_post(session: Session, post: ParsedPost) -> Post:
     row = session.exec(select(Post).where(Post.x_post_id == post.x_post_id)).first()
     if row:
+        # Insert-only was losing data: a row first stored without a permalink or
+        # a timestamp never got one, and the send path needs both. Fill gaps
+        # only; a stored value is never blanked by a later thinner read.
+        changed = False
+        if not row.url and post.url:
+            row.url, changed = post.url, True
+        if not row.created_at and post.created_at:
+            row.created_at, changed = post.created_at, True
+        if not row.author_handle and post.author_handle:
+            row.author_handle, changed = post.author_handle, True
+        if post.likes or post.replies or post.views:
+            row.metrics_json, changed = json.dumps(post.metrics()), True
+        if changed:
+            session.add(row)
+            session.commit()
+            session.refresh(row)
         return row
     row = Post(x_post_id=post.x_post_id, author_handle=post.author_handle,
-               text=post.text, created_at=post.created_at, url=post.url,
+               text=post.text, created_at=post.created_at,
+               url=post.url or permalink_for(post.author_handle, post.x_post_id),
                kind=post.kind, metrics_json=json.dumps(post.metrics()),
                media=post.media, lang=post.lang, parent_x_id=post.parent_x_id)
     session.add(row)
     session.commit()
     session.refresh(row)
     return row
+
+
+def backfill_post_urls(session: Session) -> int:
+    """Give every stored post a permalink. Offline, idempotent."""
+    rows = session.exec(select(Post).where(Post.url == "")).all()
+    n = 0
+    for row in rows:
+        link = permalink_for(row.author_handle, row.x_post_id)
+        if link:
+            row.url = link
+            session.add(row)
+            n += 1
+    if n:
+        session.commit()
+        log.info("backfilled %d post permalinks", n)
+    return n
 
 
 def _age_seconds(post: ParsedPost) -> float:
@@ -64,7 +115,7 @@ def _already_replied(session: Session, post_row: Post) -> bool:
     # R-05: never reply twice in the same thread / to a post already replied
     existing = session.exec(
         select(Draft).where(Draft.parent_post_id == post_row.id,
-                            Draft.status.in_(["sent", "approved"]))).first()
+                            Draft.status.in_(["sent", "approved", "needs_review"]))).first()
     return existing is not None
 
 

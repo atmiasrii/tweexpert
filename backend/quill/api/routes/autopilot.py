@@ -126,6 +126,52 @@ def clear_stale(session: Session = Depends(get_session), _=Depends(require_auth)
     return {"removed": len(removed), "kept": kept, "detail": removed[:20]}
 
 
+class ResolveBody(BaseModel):
+    posted: bool
+    x_post_id: str = ""
+
+
+@router.post("/drafts/{draft_id}/resolve")
+def resolve(draft_id: int, body: ResolveBody,
+            session: Session = Depends(get_session), _=Depends(require_auth)):
+    """Settle a reply Quill could not confirm.
+
+    This is the only way out of `needs_review`. Quill deliberately refuses to
+    guess: it clicked send and then could not find the reply, so only a human
+    looking at the post knows whether it is live.
+    """
+    draft = session.get(Draft, draft_id)
+    if not draft:
+        raise HTTPException(404)
+    if draft.status != "needs_review":
+        raise HTTPException(400, f"draft is {draft.status}, nothing to resolve")
+
+    if body.posted:
+        draft.status = "sent"
+        if body.x_post_id:
+            from ...db.models import Action, Authorization
+            authz_ids = [a.id for a in session.exec(
+                select(Authorization).where(Authorization.draft_id == draft_id)).all()]
+            if authz_ids:
+                act = session.exec(
+                    select(Action).where(Action.kind == "reply",
+                                         Action.authorization_id.in_(authz_ids))
+                    .order_by(Action.created_at.desc())).first()
+                if act:
+                    act.x_post_id = body.x_post_id
+                    act.outcome = "done"
+                    session.add(act)
+            from ...ops.analytics import register_own_post
+            register_own_post(session, body.x_post_id, draft.final_text, kind="reply")
+    else:
+        # It never went out, so it is fair game again.
+        draft.status = "queued"
+    session.add(draft)
+    session.commit()
+    publish("draft_resolved", {"draft_id": draft_id, "posted": body.posted})
+    return {"ok": True, "status": draft.status}
+
+
 @router.get("/shadow")
 def shadow_log(session: Session = Depends(get_session), _=Depends(require_auth)):
     drafts = session.exec(select(Draft).where(Draft.status == "shadow")

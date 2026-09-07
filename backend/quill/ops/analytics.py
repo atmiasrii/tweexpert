@@ -131,6 +131,12 @@ def _samples(session: Session, x_post_id: str) -> list:
 
 def _stage(draft, action, samples) -> tuple[str, str]:
     """Where this reply has got to, and one line of plain English for it."""
+    if draft.status == "needs_review":
+        return ("unverified",
+                "Quill clicked send but could not find the reply afterwards. "
+                "Open the post and tell it whether this went out.")
+    if action is not None and action.outcome == "target_gone":
+        return "skipped", "That post is gone, so nothing was sent."
     if draft.status == "dismissed":
         return "skipped", "You skipped this one."
     if draft.status == "queued":
@@ -154,7 +160,8 @@ def sent_replies(session: Session, limit: int = 60) -> list[dict]:
     """Every reply Quill has put out, newest first, with where each one got to."""
     drafts = session.exec(
         select(Draft).where(Draft.kind == "reply",
-                            Draft.status.in_(["sent", "approved", "ready"]))
+                            Draft.status.in_(["sent", "approved", "ready",
+                                              "needs_review"]))
         .order_by(Draft.created_at.desc()).limit(limit)).all()
     out = []
     for d in drafts:

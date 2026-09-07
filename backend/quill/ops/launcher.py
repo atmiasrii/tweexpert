@@ -45,9 +45,9 @@ PIDS_KEY = "live_pids"
 # The processes the launcher owns, and the env each one needs.
 PROCS: dict[str, dict[str, str]] = {
     # Scheduler only. Must not open a browser: the profile takes one owner.
-    "worker": {"QUILL_WORKER_RUNS_ENGINE": "0"},
+    "worker": {"QUILL_WORKER_RUNS_ENGINE": "0", "QUILL_OWNS_ENGINE": "0"},
     # The engine owner.
-    "browser": {},
+    "browser": {"QUILL_OWNS_ENGINE": "1"},
 }
 MODULES = {"worker": "quill.worker", "browser": "quill.browser_proc"}
 
@@ -65,6 +65,18 @@ class Check:
 
 def is_live(session: Session) -> bool:
     return bool(get_setting(session, LIVE_KEY, False))
+
+
+
+def owns_engine() -> bool:
+    """True only in the process that may drive Chromium.
+
+    Exactly one process can hold the persistent profile. A second one opening
+    it can corrupt the profile and cost the signed-in X session, which is the
+    one thing only a human can restore. The launcher stamps this on each child;
+    anything unstamped (the API, a script, a test) is treated as a non-owner.
+    """
+    return os.environ.get("QUILL_OWNS_ENGINE") == "1"
 
 
 def writes_deferred(session: Session) -> bool:

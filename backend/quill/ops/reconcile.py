@@ -16,6 +16,11 @@ log = get_logger("quill.reconcile")
 
 def startup_reconcile(session: Session) -> dict:
     # 1. unfinished actions (Q-02) — bus reconciles against X
+    # Every post needs a permalink, because that is how a reply now finds
+    # its target. Offline and idempotent.
+    from ..pipeline.pipeline import backfill_post_urls
+    backfill_post_urls(session)
+
     bus_result = get_bus().reconcile()
 
     # 2. expire stale drafts (R-03)
