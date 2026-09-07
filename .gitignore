@@ -35,3 +35,6 @@ frontend/node_modules/
 
 # Plugin scratch
 .remember/
+
+# TypeScript incremental build cache: rewritten on every build
+*.tsbuildinfo
