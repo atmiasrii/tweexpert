@@ -42,6 +42,42 @@ the… actually from `POST /api/auth/totp/enroll` once logged in (X-02).
 
 ---
 
+## Everyday use: `quill.bat`
+
+Double-click `quill.bat`. It checks the virtual environment, `.env` and Ollama,
+rebuilds the dashboard if the source changed, starts the API on port 8770, waits
+until it answers, and opens the dashboard.
+
+The worker and browser processes come up with the API through `launcher.start`,
+via the `autostart_live` setting. Do not start them from the batch file
+directly: `launcher.start` is what records their PIDs, and without that the
+dashboard's Start/Stop button cannot see or stop them, and two processes end up
+fighting over the Chromium profile lock.
+
+From there it runs unattended:
+
+| Loop | What it does | Cadence |
+|---|---|---|
+| Timeline sweep | one read of the home timeline covers the whole watchlist, so a new post from a watched account is picked up quickly | every 90s |
+| Tier A backstop | direct profile reads for the highest-tier accounts, for posts the timeline buries | a couple per sweep |
+| For You batch | answers up to 10 different people per batch, one reply per author, 24h cooldown per author | every 90 min |
+
+Replies only go out on their own when the critic scores them at or above
+`foryou_auto_min` on all four axes; anything under the bar is discarded rather
+than queued. Sends are spaced about 9 minutes apart, so a batch of ten lands
+over roughly an hour and a half, and everything stops at
+`cap_replies_total` (49) replies for the day.
+
+Nothing sending? The Overview says which single thing is stopping it: the kill
+switch, quiet hours, the random rest day, the daily reply limit, or the daily
+reading limit.
+
+Recalibrate the confidence bar against real drafts at any time:
+
+```
+python scripts/calibrate_threshold.py --from-db --strictness 0.2 --apply
+```
+
 ## Security — read before exposing anything (§22)
 
 - **Loopback only.** Every service binds to `127.0.0.1` (X-01). The app warns if it
