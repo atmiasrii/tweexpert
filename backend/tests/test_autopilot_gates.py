@@ -137,3 +137,40 @@ def test_shadow_gate_is_off_by_default(session):
     session.add(acc)
     session.commit()
     assert shadow_complete(session, acc) is False
+
+
+def test_premium_tier_raises_the_ceiling(session):
+    """Premium removes X's platform caps, so the budget under them moves too."""
+    from quill.db.settings_store import set_setting
+    from quill.governor import tiers
+
+    set_setting(session, "account_tier", "free")
+    tiers.apply_tier_defaults(session)
+    assert tiers.budget(session, "cap_replies_total") == 49
+    assert tiers.platform_cap(session, "replies") == 200
+
+    set_setting(session, "account_tier", "premium")
+    assert tiers.apply_tier_defaults(session) == "premium"
+    assert tiers.budget(session, "cap_replies_total") == 120
+    assert tiers.budget(session, "min_write_spacing_s") == 5 * 60
+    assert tiers.platform_cap(session, "replies") is None      # unlimited
+
+    day = _clean_day(session)
+    day.replies_foryou = 119
+    session.add(day)
+    session.commit()
+    governor.check_write_allowed(session, "reply", "foryou")   # 120th is allowed
+
+    day.replies_foryou = 120
+    session.add(day)
+    session.commit()
+    with pytest.raises(governor.GovernorRefusal) as e:
+        governor.check_write_allowed(session, "reply", "foryou")
+    assert "120/120" in e.value.reason
+
+
+def test_unknown_tier_falls_back_to_free(session):
+    from quill.db.settings_store import set_setting
+    from quill.governor import tiers
+    set_setting(session, "account_tier", "platinum-deluxe")
+    assert tiers.account_tier(session) == "free"

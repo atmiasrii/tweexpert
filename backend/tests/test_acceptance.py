@@ -172,6 +172,7 @@ def test_t03_gate_link_hashtag_mention(session):
 def test_t03_gate_governor_budget(session):
     from quill.pipeline.policy import evaluate_auto
     ctx, _, _ = _passing_ctx(session)
+    set_setting(session, "cap_replies_total", 10)   # independent of account tier
     day = governor.get_day(session)
     day.replies_auto = 99
     session.add(day); session.commit()
@@ -253,6 +254,10 @@ def test_t06_actions_serialise(session, monkeypatch):
 def test_t07_governor_distinct_reasons(session):
     _day_clean(session)
     _quiet_window_excluding_now(session)
+    # Pin the numbers so the test states one reason at a time regardless of
+    # which account tier's budget is in force.
+    set_setting(session, "cap_replies_total", 10)
+    set_setting(session, "burst_max_writes", 3)
     # cap
     day = governor.get_day(session)
     day.replies_assisted = 99

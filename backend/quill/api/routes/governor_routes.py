@@ -12,7 +12,7 @@ from ...db.settings_store import get_setting
 from ...defaults import (CAP_POSTS, CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO,
                         CAP_REPLIES_FORYOU, CAP_REPLIES_TOTAL, CAP_THREADS,
                         DAILY_READ_BUDGET)
-from ...governor import governor
+from ...governor import governor, tiers
 from ...ops import session_guard
 from ..auth import require_auth
 from ..events import publish
@@ -53,7 +53,7 @@ def get_governor(session: Session = Depends(get_session), _=Depends(require_auth
             # actually stops the day, so the dashboard shows this one.
             "replies_total": {
                 "used": day.replies_auto + day.replies_assisted + day.replies_foryou,
-                "cap": get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL),
+                "cap": tiers.budget(session, "cap_replies_total"),
             },
             "replies_foryou": {"used": day.replies_foryou,
                                "cap": get_setting(session, "foryou_daily_cap", CAP_REPLIES_FORYOU)},
@@ -61,6 +61,9 @@ def get_governor(session: Session = Depends(get_session), _=Depends(require_auth
         # Why replies are or are not going out right now, in one place, so the
         # operator never has to guess which of five flags is the quiet one.
         "auto_blocked_by": _auto_blocked_by(session, day),
+        # Premium lifts X's own caps; the budget below them is still ours.
+        "account_tier": tiers.account_tier(session),
+        "platform_reply_cap": tiers.platform_cap(session, "replies"),
         "kill_switch": day.kill_switch or get_setting(session, "kill_switch", False),
         "quiet_now": governor.in_quiet_hours(session),
         "next_slot": governor.next_available_slot(session).isoformat(),
@@ -79,7 +82,7 @@ def _auto_blocked_by(session, day) -> str | None:
     if day.no_auto_today:
         return "rest day: Quill takes a day off at random to look human"
     total = day.replies_auto + day.replies_assisted + day.replies_foryou
-    cap = get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL)
+    cap = tiers.budget(session, "cap_replies_total")
     if total >= cap:
         return f"daily reply limit reached ({total}/{cap})"
     if governor.read_budget_left(session) <= 0:

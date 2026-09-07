@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # --- identity -------------------------------------------------------
     operator_handle: str = "barryallendgx"
     operator_timezone: str = "Asia/Kolkata"
+    # "free" or "premium". Premium removes X's posting caps, which
+    # raises the ceiling Quill works under. See governor/tiers.py.
+    account_tier: str = "free"
 
     # Login password. Declared so .env is actually read for it; None means
     # "not configured", which leaves whatever is already stored alone.

@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 from ..config import get_settings
 from ..db.models import Action, GovernorDay
 from ..db.settings_store import get_setting
+from .tiers import budget
 from ..defaults import (BURST_MAX_WRITES, BURST_WINDOW_S, CAP_POSTS,
                         CAP_REPLIES_ASSISTED, CAP_REPLIES_AUTO, CAP_REPLIES_FORYOU,
                         CAP_REPLIES_TOTAL, CAP_THREADS,
@@ -93,15 +94,18 @@ def in_quiet_hours(session: Session, at: datetime | None = None) -> bool:
 
 
 def _cap_for(session: Session, kind: str, mode: str) -> tuple[int, str]:
+    """The per-mode cap. It defaults to the whole day's reply budget, so the
+    single total above is what binds; set one explicitly to ration a path."""
     if kind in ("reply",):
+        whole_day = budget(session, "cap_replies_total")
         if mode == "foryou":
-            return get_setting(session, "foryou_daily_cap", CAP_REPLIES_FORYOU), "replies_foryou"
+            return get_setting(session, "foryou_daily_cap", whole_day), "replies_foryou"
         if mode == "auto":
-            return get_setting(session, "cap_replies_auto", CAP_REPLIES_AUTO), "replies_auto"
-        return get_setting(session, "cap_replies_assisted", CAP_REPLIES_ASSISTED), "replies_assisted"
+            return get_setting(session, "cap_replies_auto", whole_day), "replies_auto"
+        return get_setting(session, "cap_replies_assisted", whole_day), "replies_assisted"
     if kind == "thread":
         return get_setting(session, "cap_threads", CAP_THREADS), "threads"
-    return get_setting(session, "cap_posts", CAP_POSTS), "posts"
+    return budget(session, "cap_posts"), "posts"
 
 
 def check_write_allowed(session: Session, kind: str, mode: str) -> None:
@@ -117,7 +121,7 @@ def check_write_allowed(session: Session, kind: str, mode: str) -> None:
     # One ceiling across every reply path. The per-mode caps below cannot see
     # each other, so without this the real daily volume is their sum.
     if kind == "reply":
-        total_cap = get_setting(session, "cap_replies_total", CAP_REPLIES_TOTAL)
+        total_cap = budget(session, "cap_replies_total")
         total_used = day.replies_auto + day.replies_assisted + day.replies_foryou
         if total_used >= total_cap:
             raise GovernorRefusal(
@@ -133,7 +137,7 @@ def check_write_allowed(session: Session, kind: str, mode: str) -> None:
         last = day.last_write_at
         if last.tzinfo is None:
             last = last.replace(tzinfo=timezone.utc)
-        spacing = get_setting(session, "min_write_spacing_s", MIN_WRITE_SPACING_S)
+        spacing = budget(session, "min_write_spacing_s")
         if (datetime.now(timezone.utc) - last).total_seconds() < spacing:
             raise GovernorRefusal(f"minimum spacing not elapsed ({spacing}s)")
 
@@ -147,10 +151,11 @@ def check_write_allowed(session: Session, kind: str, mode: str) -> None:
             Action.outcome == "done",
         )
     ).all()
-    if len(recent_writes) >= BURST_MAX_WRITES:
+    burst_max = budget(session, "burst_max_writes")
+    if len(recent_writes) >= burst_max:
         raise GovernorRefusal(
             f"burst guard: {len(recent_writes)} writes in last "
-            f"{BURST_WINDOW_S // 60}m (max {BURST_MAX_WRITES})")
+            f"{BURST_WINDOW_S // 60}m (max {burst_max})")
 
 
 def record_write(session: Session, kind: str, mode: str) -> None:
@@ -181,7 +186,7 @@ def record_read(session: Session, n: int = 1) -> None:
 def read_budget_left(session: Session) -> int:
     from ..defaults import DAILY_READ_BUDGET
     day = get_day(session)
-    return max(0, get_setting(session, "daily_read_budget", DAILY_READ_BUDGET) - day.reads)
+    return max(0, budget(session, "daily_read_budget") - day.reads)
 
 
 # --- kill / panic (S-06) -----------------------------------------------

@@ -154,6 +154,14 @@ export function Home({ go }: { go: (t: TabId) => void }) {
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 pt-3 border-t border-rule text-[12.5px] text-muted">
             <span>mode <Badge tone={g?.mode === "auto" ? "warn" : g?.mode === "assisted" ? "info" : "neutral"}>{g?.mode ?? "—"}</Badge></span>
+            {g?.account_tier && (
+              <span>
+                account <Badge tone={g.account_tier === "premium" ? "accent" : "neutral"}>{g.account_tier}</Badge>
+                <Help text={g.platform_reply_cap
+                  ? `X allows ${g.platform_reply_cap} replies a day on this tier. Quill's own limit is lower on purpose.`
+                  : "Premium removes X's posting caps. Quill's daily limit is its own choice, not the platform's."} />
+              </span>
+            )}
             <span className="num">reads today <b className="text-ink-2">{u?.reads ?? 0}</b></span>
             {g?.quiet_now && <Badge tone="neutral">quiet hours</Badge>}
             {g?.kill_switch && <Badge tone="risk">kill switch on</Badge>}

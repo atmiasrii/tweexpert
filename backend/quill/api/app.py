@@ -74,6 +74,10 @@ def create_app(run_startup: bool = True) -> FastAPI:
                 ensure_operator(sess)
                 if sync_login_password(sess):
                     log.info("login password updated from .env")
+                from ..governor.tiers import apply_tier_defaults
+                changed = apply_tier_defaults(sess)
+                if changed:
+                    log.info("account tier is %s; rate budget applied", changed)
                 startup_reconcile(sess)          # O-03
                 # One double-click of quill.bat should bring the whole system
                 # up. Going through launcher.start (rather than the bat file
