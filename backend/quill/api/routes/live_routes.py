@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from ...defaults import CAP_REPLIES_FORYOU
 from ...db.engine import get_session
 from ...db.models import Account
-from ...db.settings_store import get_setting
+from ...db.settings_store import get_setting, set_setting
 from ...governor import governor
 from ...pipeline import foryou_auto, live_state
 from ...pipeline.following import import_following
@@ -32,7 +32,18 @@ def activity(session: Session = Depends(get_session), _=Depends(require_auth)):
 
 @router.post("/live/foryou")
 def run_foryou(session: Session = Depends(get_session), _=Depends(require_auth)):
-    """Scan the For-You feed once now and draft/reply per the current mode."""
+    """Scan the For-You feed once now and draft/reply per the current mode.
+
+    The API never owns the browser. Running the sweep here used the offline
+    fixture engine and produced drafts against posts that do not exist on X,
+    which then failed to send. When the browser process is live, hand the
+    sweep to it: clearing the last-run stamp makes its next one-minute tick
+    run the sweep immediately.
+    """
+    from ...ops import launcher
+    if launcher.is_live(session) and not launcher.owns_engine():
+        set_setting(session, foryou_auto.K_LAST_RUN, None)
+        return {"status": "requested", "detail": "the browser process sweeps within a minute"}
     return foryou_auto.run(session)
 
 

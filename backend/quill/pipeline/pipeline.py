@@ -276,11 +276,21 @@ def _do_auto(session, draft, result, post, account, rel) -> Outcome:
 
 
 # --- pending auto sends (worker drains these) --------------------------
-def _stash_pending(session, draft_id, authz_id, target_x_id, send_at):
+def _stash_pending(session, draft_id, authz_id, target_x_id, send_at,
+                   permalink: str = "", author: str = ""):
     from ..db.settings_store import get_setting, set_setting
+    if not permalink or not author:
+        # Every scheduled send carries the link it will open. This is the
+        # path that was still sending without one, which fell back to the
+        # redirecting /i/status/ form.
+        parent = session.exec(select(Post).where(Post.x_post_id == target_x_id)).first()
+        if parent:
+            author = author or parent.author_handle
+            permalink = permalink or permalink_for(parent.author_handle, target_x_id, parent.url)
     pend = get_setting(session, "_pending_auto", [])
     pend.append({"draft_id": draft_id, "authz_id": authz_id,
-                 "target": target_x_id, "send_at": send_at.isoformat()})
+                 "target": target_x_id, "send_at": send_at.isoformat(),
+                 "permalink": permalink, "author": author})
     set_setting(session, "_pending_auto", pend)
 
 
@@ -310,7 +320,9 @@ def send_due_auto(session: Session) -> list[str]:
             expires_at=arow.expires_at)
         try:
             action = bus.submit_write("reply", item["target"], draft.final_text,
-                                      authz, issuer="policy", draft_id=draft.id)
+                                      authz, issuer="policy", draft_id=draft.id,
+                                      permalink=item.get("permalink", ""),
+                                      author=item.get("author", ""))
             sent.append(action.x_post_id)
             _post_send_push(session, draft, action.x_post_id)
         except GovernorRefusal as e:

@@ -15,6 +15,9 @@ from __future__ import annotations
 import queue
 import threading
 from concurrent.futures import Future
+from concurrent.futures import TimeoutError as FuturesTimeout
+import sys
+import traceback
 from typing import Callable
 
 from ..logging_setup import get_logger
@@ -36,11 +39,44 @@ def _target_closed(exc: BaseException) -> bool:
             or "connection closed" in msg)
 
 
+
+class EngineWedged(RuntimeError):
+    """An engine call ran past the actor's budget. The browser was killed and
+    relaunched; the call that hit it may or may not have taken effect."""
+
+
+def _dump_stacks() -> None:
+    frames = sys._current_frames()
+    for th in threading.enumerate():
+        fr = frames.get(th.ident)
+        if fr is None:
+            continue
+        stack = "".join(traceback.format_stack(fr))
+        log.error("thread %s (%s):\n%s", th.name, th.ident, stack)
+
+
+def _kill_driver(engine) -> None:
+    """Kill the Playwright driver process under a wedged engine. Chromium
+    exits with it. Done at the OS level because every Playwright object is
+    bound to the thread that is stuck."""
+    if engine is None:
+        return
+    try:
+        pw = getattr(engine, "_pw", None)
+        proc = pw._impl_obj._connection._transport._proc
+        proc.kill()
+        log.warning("killed the wedged Playwright driver (pid %s)", proc.pid)
+    except Exception as e:
+        log.error("could not kill the wedged Playwright driver: %s", e)
+
 class BrowserActor:
     def __init__(self, factory: Callable[[], object]):
         self._factory = factory
         self._engine = None
         self._q: "queue.Queue" = queue.Queue()
+        self._spawn_thread()
+
+    def _spawn_thread(self) -> None:
         self._thread = threading.Thread(target=self._loop, name="browser-actor", daemon=True)
         self._thread.start()
 
@@ -82,10 +118,37 @@ class BrowserActor:
         finally:
             self._engine = None
 
-    def submit(self, fn: Callable[[object], object]):
+    # The longest legitimate engine call is a reply: open the post, type a
+    # few hundred characters at human speed, send, reload, verify, and fall
+    # back to the profile. That is under three minutes. Anything past this
+    # is a wedged Playwright call, and one of those used to freeze every job
+    # in the process forever, sends included, with no line in the log.
+    CALL_TIMEOUT_S = 300
+
+    def submit(self, fn: Callable[[object], object], timeout: float | None = None):
         fut: Future = Future()
         self._q.put((fn, fut))
-        return fut.result()          # blocks until the actor thread finishes it
+        try:
+            return fut.result(timeout or self.CALL_TIMEOUT_S)
+        except FuturesTimeout:
+            self._recover_from_wedge()
+            raise EngineWedged(f"engine call exceeded {timeout or self.CALL_TIMEOUT_S}s "
+                               "and the browser has been closed and restarted")
+
+    def _recover_from_wedge(self) -> None:
+        """The actor thread is stuck inside Playwright. It cannot be
+        interrupted and its engine cannot be closed from another thread, so
+        record where it is stuck, kill the browser it was driving, and hand the
+        queue to a fresh thread that will launch a new one."""
+        log.error("browser actor wedged; thread stacks follow")
+        _dump_stacks()
+        wedged, self._engine = self._engine, None
+        # A new queue: the stuck thread must not wake up later and start
+        # serving calls against a browser that no longer exists.
+        self._q = queue.Queue()
+        _kill_driver(wedged)
+        self._spawn_thread()
+        log.warning("browser actor restarted on a fresh thread")
 
     def stop(self) -> None:
         self._q.put(_STOP)

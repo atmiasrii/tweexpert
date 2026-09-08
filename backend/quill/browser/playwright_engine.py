@@ -549,6 +549,18 @@ class PlaywrightEngine:
         """
         url = permalink or permalink_for(author, x_post_id)
         self._goto(url)
+        # X redirects a missing post client-side, a beat after
+        # domcontentloaded, so one immediate URL check passed and the reply
+        # was then attempted on the Explore page. Check, wait, check again.
+        for _ in range(2):
+            if f"/status/{x_post_id}" not in (self._page.url or ""):
+                raise PostUnavailable(x_post_id, self._capture("post_unavailable"))
+            time.sleep(1.5)
+        try:
+            self._page.wait_for_selector('article[data-testid="tweet"]',
+                                         timeout=self.WRITE_WAIT_MS)
+        except Exception:
+            pass
         if f"/status/{x_post_id}" not in (self._page.url or ""):
             raise PostUnavailable(x_post_id, self._capture("post_unavailable"))
 
