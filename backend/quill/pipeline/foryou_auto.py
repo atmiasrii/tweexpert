@@ -37,15 +37,17 @@ K_PER_RUN = "foryou_per_run"
 K_MODE = "foryou_mode"           # "auto" (send) | "assisted" (queue)
 K_RELEVANCE_MIN = "foryou_relevance_min"
 K_COOLDOWN_H = "foryou_author_cooldown_h"
+K_MAX_AGE_MIN = "foryou_max_age_min"
 
 # Both of these are calibrated by scripts/calibrate_threshold.py rather than
 # guessed; these are only the starting points.
 FORYOU_RELEVANCE_MIN = 55.0
 FORYOU_AUTO_MIN = 18
+FORYOU_MAX_AGE_MIN = 360     # six hours; see relevance.skip_reason
 
 DEFAULTS = {K_ENABLED: False, K_INTERVAL: 90, K_PER_RUN: FORYOU_PER_RUN,
             K_MODE: "assisted", K_RELEVANCE_MIN: FORYOU_RELEVANCE_MIN,
-            K_COOLDOWN_H: FORYOU_AUTHOR_COOLDOWN_H}
+            K_COOLDOWN_H: FORYOU_AUTHOR_COOLDOWN_H, K_MAX_AGE_MIN: FORYOU_MAX_AGE_MIN}
 
 
 def config(session: Session) -> dict:
@@ -62,6 +64,8 @@ def set_config(session: Session, **kw) -> dict:
 
 
 K_LAST_RUN = "foryou_last_run"
+# X search operator: posts from accounts I follow, no replies, newest first.
+FOLLOWING_LIVE_QUERY = "filter:follows -filter:replies"
 AXES = ["sounds_like_operator", "adds_something", "reads_human", "low_embarrassment_risk"]
 
 
@@ -209,6 +213,7 @@ def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
     """
     op = get_settings().operator_handle
     recent = _cooldown_authors(session, cooldown_h)
+    max_age = float(get_setting(session, K_MAX_AGE_MIN, FORYOU_MAX_AGE_MIN))
     tally = {"own": 0, "blocked": 0, "skipped": 0, "below_threshold": 0,
              "duplicate_author": 0, "cooldown": 0}
 
@@ -224,8 +229,14 @@ def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
         if block_reason(session, p, auto=(mode == "auto")):
             tally["blocked"] += 1
             continue
-        if relevance_mod.skip_reason(p):
-            tally["skipped"] += 1
+        why = relevance_mod.skip_reason(p, max_age_min=max_age)
+        if why:
+            # Split by gate: "skipped 48" says nothing; "old 40, thin 8" does.
+            key = ("restricted" if "restricted" in why else
+                   "too_old" if "min old" in why else
+                   "thin" if "thin" in why else
+                   "saturated" if "replies" in why else "skipped")
+            tally[key] = tally.get(key, 0) + 1
             continue
         rel = relevance_mod.score(session, p, None)
         if rel < rel_min:
@@ -288,6 +299,19 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
     live_state.record(session, "watching", "reading your For You feed", target="For You")
     posts = bus.submit_read("presence", "home") or []
     governor.record_read(session, 1)
+    # For You is algorithmic and mostly days old: a sweep of 18 posts had 15
+    # outside the 90-minute reply window. The live-sorted following feed is
+    # chronological, so it is where the fresh posts actually are.
+    if get_setting(session, "foryou_include_following", True):
+        try:
+            live_state.record(session, "watching", "reading your Following feed (newest first)",
+                              target="Following")
+            fresh = bus.submit_read("search", FOLLOWING_LIVE_QUERY) or []
+            governor.record_read(session, 1)
+            seen = {p.x_post_id for p in posts}
+            posts = posts + [p for p in fresh if p.x_post_id not in seen]
+        except Exception as e:
+            log.warning("following feed read failed: %s", e)
     out["scanned"] = len(posts)
 
     batch, tally = _pick_batch(session, posts, mode, per_run, rel_min, cooldown_h)

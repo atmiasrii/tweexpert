@@ -79,6 +79,15 @@ def create_app(run_startup: bool = True) -> FastAPI:
                 if changed:
                     log.info("account tier is %s; rate budget applied", changed)
                 startup_reconcile(sess)          # O-03
+                # A demotion is temporary; the operator's stated mode is the
+                # source of truth and comes back on every start.
+                try:
+                    from ..ops.session_guard import restore_preferred_modes
+                    n = restore_preferred_modes(sess)
+                    if n:
+                        log.info("restored %d account(s) to their preferred mode", n)
+                except Exception as e:
+                    log.warning("could not restore preferred modes: %s", e)
                 # One double-click of quill.bat should bring the whole system
                 # up. Going through launcher.start (rather than the bat file
                 # spawning them) is what records live_pids, without which the

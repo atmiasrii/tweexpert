@@ -29,6 +29,23 @@ from .selectors import SelectorEntry, load_registry
 log = get_logger("quill.browser")
 
 
+def feed_step(stale_rounds: int, added: int, collected: int, target: int,
+              max_stale: int = 3) -> tuple[int, str]:
+    """One round of the feed-collection loop's bookkeeping, kept pure so it
+    can be tested without a browser.
+
+    Returns the new stale-round counter and a stop reason: "" to keep
+    scrolling, "target" once enough unique posts are in hand, "exhausted"
+    after `max_stale` consecutive scrolls added nothing new.
+    """
+    stale = 0 if added > 0 else stale_rounds + 1
+    if collected >= target:
+        return stale, "target"
+    if stale >= max_stale:
+        return stale, "exhausted"
+    return stale, ""
+
+
 class PlaywrightEngine:
     name = "playwright"
 
@@ -130,6 +147,15 @@ class PlaywrightEngine:
     # cold load. Looking for tweets right after domcontentloaded was a race, and
     # losing it raised SelectorMiss on a page that was simply still spinning.
     FEED_WAIT_MS = 20000
+    # How many unique posts one feed sweep should bring back, how many scrolls
+    # it may spend getting there, how long to let X attach new articles after
+    # each scroll (the feed is virtualised, so counting straight after the
+    # wheel event saw the old page), and how many empty scrolls mean the feed
+    # has nothing more to give.
+    FEED_TARGET = 30
+    FEED_ROUNDS = 30
+    FEED_SETTLE_MS = 2500
+    FEED_STALE_ROUNDS = 3
 
     def _find_all(self, key: str, wait_ms: int = 0):
         entry: SelectorEntry = self.reg.get(key)
@@ -193,6 +219,16 @@ class PlaywrightEngine:
             time.sleep(random.uniform(0.03, 0.14))       # per-char delay
             if random.random() < 0.04:
                 time.sleep(random.uniform(0.3, 1.1))      # occasional pause
+
+
+    def _feed_scroll(self) -> None:
+        """One collection scroll: further than a reading scroll, since a tweet
+        with media is taller than the 300-900px a casual wheel moves."""
+        self._page.mouse.wheel(0, random.randint(1400, 2400))
+        time.sleep(random.uniform(0.5, 1.4))
+        if random.random() < 0.15:
+            self._page.mouse.wheel(0, -random.randint(100, 300))
+            time.sleep(random.uniform(0.3, 0.7))
 
     def _human_scroll(self, rounds: int = 5):
         for _ in range(rounds):
@@ -265,13 +301,20 @@ class PlaywrightEngine:
             pass
 
         counts = self._engagement_counts(art)
+        restricted = False
+        try:
+            blob = art.inner_text()
+            restricted = ("can reply" in blob) or ("replies are limited" in blob.lower())
+        except Exception:
+            pass
 
         return ParsedPost(x_post_id=pid, author_handle=author, text=text,
                           url=link, media=media, created_at=created_at,
                           likes=counts.get("like", 0),
                           reposts=counts.get("retweet", 0),
                           replies=counts.get("reply", 0),
-                          views=counts.get("views", 0))
+                          views=counts.get("views", 0),
+                          reply_restricted=restricted)
 
     # X renders counts only in the aria-label ("12 replies, 40 reposts, 300
     # likes"), and hides the element entirely at zero, so a miss means zero.
@@ -317,29 +360,90 @@ class PlaywrightEngine:
             out.append(p)
         return out
 
+    def _tweet_count(self) -> int:
+        """Articles currently attached, without raising or capturing on zero."""
+        for sel in self.reg.get("tweet").all():
+            try:
+                n = self._page.locator(sel).count()
+            except Exception:
+                continue
+            if n > 0:
+                return n
+        return 0
+
+    def _wait_for_articles(self, before: int, timeout_ms: int) -> int:
+        """Block until the article count moves off `before`, or give up after
+        `timeout_ms`. Returns the count seen last."""
+        deadline = time.time() + timeout_ms / 1000.0
+        while True:
+            n = self._tweet_count()
+            if n != before or time.time() >= deadline:
+                return n
+            time.sleep(0.25)
+
+    def _article_id(self, art) -> str:
+        """Cheap post id from the permalink, so already-seen articles are not
+        re-extracted on every round."""
+        try:
+            href = art.locator(self.reg.get("tweet_link").primary).first.get_attribute("href")
+        except Exception:
+            return ""
+        if not href or "/status/" not in href:
+            return ""
+        return href.split("/status/")[1].split("?")[0].split("/")[0]
+
     def _collect_feed(self, surface_handle: str = "", since_id: str = "",
-                      target: int = 25, rounds: int = 7) -> list[ParsedPost]:
+                      target: int | None = None,
+                      rounds: int | None = None) -> list[ParsedPost]:
         """Scroll a feed incrementally, collecting unique posts until `target`
         or a known high-water id. Used for home/search where one pass misses
-        most of the feed."""
+        most of the feed.
+
+        X virtualises the feed: after a scroll, new articles take a moment to
+        attach, and counting straight away saw the same page again. Each scroll
+        is followed by a wait for the article count to move, and the sweep only
+        gives up early once FEED_STALE_ROUNDS scrolls in a row add nothing.
+        """
+        target = self.FEED_TARGET if target is None else target
+        rounds = self.FEED_ROUNDS if rounds is None else rounds
         seen: set[str] = set()
         out: list[ParsedPost] = []
-        first = True
-        for _ in range(rounds):
-            tweets, _sel = self._find_all("tweet",
-                                          wait_ms=self.FEED_WAIT_MS if first else 0)
-            first = False
-            for i in range(tweets.count()):
-                p = self._extract(tweets.nth(i), surface_handle=surface_handle)
+        stale = 0
+        reason = ""
+        rnd = -1
+        for rnd in range(rounds):
+            try:
+                tweets, _sel = self._find_all(
+                    "tweet", wait_ms=self.FEED_WAIT_MS if rnd == 0 else 0)
+            except SelectorMiss:
+                if rnd == 0:
+                    raise
+                tweets = None                     # virtualiser mid-swap
+            added = 0
+            count = tweets.count() if tweets is not None else 0
+            for i in range(count):
+                art = tweets.nth(i)
+                pid = self._article_id(art)
+                if pid and pid in seen:
+                    continue
+                if since_id and pid == since_id:
+                    return out[:target]           # high-water mark (I-03)
+                p = self._extract(art, surface_handle=surface_handle)
                 if p is None or p.x_post_id in seen:
                     continue
                 if since_id and p.x_post_id == since_id:
-                    return out
+                    return out[:target]
                 seen.add(p.x_post_id)
                 out.append(p)
-            if len(out) >= target:
-                break
-            self._human_scroll(1)
+                added += 1
+            stale, reason = feed_step(stale, added, len(out), target,
+                                      self.FEED_STALE_ROUNDS)
+            if reason or rnd == rounds - 1:
+                break                             # no scroll after the last look
+            self._feed_scroll()
+            self._wait_for_articles(count, self.FEED_SETTLE_MS)
+        log.info("feed sweep: %d unique posts in %d round(s) (%s)",
+                 len(out), rnd + 1, reason or "round limit")
         return out[:target]
 
     def read_post(self, x_post_id: str, depth: int = 3) -> list[ParsedPost]:
@@ -361,7 +465,7 @@ class PlaywrightEngine:
     def presence(self, kind: str) -> list[ParsedPost]:
         # The For-You / home feed: collect the real feed with per-tweet authors.
         self._goto(self.reg.surfaces["home"]["url"])
-        return self._collect_feed(surface_handle="", target=25)
+        return self._collect_feed(surface_handle="", target=self.FEED_TARGET)
 
     def following(self, handle: str = "") -> list[tuple[str, str, str]]:
         """Scrape who the operator follows, for the live watchlist import."""
@@ -395,15 +499,28 @@ class PlaywrightEngine:
         return out
 
     def canary(self) -> CanaryResult:
+        """Do the registry's selectors still resolve on a live page?
+
+        Gets the same render wait the feed reads have. It used to look once,
+        immediately after domcontentloaded, so on a cold load it reported the
+        layout broken while X was still drawing it, and a false miss here
+        demotes every account.
+        """
         missing = []
         for surface in ("home",):
             try:
                 self._goto(self.reg.surfaces[surface]["url"])
             except Exception:
                 pass
+            # One render budget for the whole surface: the first key waits up
+            # to FEED_WAIT_MS, later keys get whatever of it is left. A page
+            # that is still loading never fails; a genuinely missing key
+            # costs at most one wait in total.
+            deadline = time.time() + self.FEED_WAIT_MS / 1000.0
             for key in self.reg.surfaces[surface].get("keys", []):
+                remaining_ms = max(0, int((deadline - time.time()) * 1000))
                 try:
-                    self._find(key)
+                    self._find_all(key, wait_ms=remaining_ms)
                 except SelectorMiss:
                     missing.append(key)
         shot = self._capture("canary") if missing else ""
@@ -509,6 +626,15 @@ class PlaywrightEngine:
             time.sleep(random.uniform(0.5, 1.2))
             dialog = self._page.locator('[role="dialog"]')
             scope = dialog.first if dialog.count() else self._page
+            # A restricted post opens "Who can reply?" here instead of a
+            # composer. Nothing to retry; the author closed the door.
+            try:
+                if dialog.count() and "can reply" in dialog.first.inner_text():
+                    raise PostUnavailable(parent_x_id, self._capture("reply_restricted"))
+            except PostUnavailable:
+                raise
+            except Exception:
+                pass
             composer = self._composer_in(scope, wait=True)
         if composer is None:
             raise SelectorMiss("composer", self._capture("composer_miss"))
@@ -569,9 +695,7 @@ class PlaywrightEngine:
         the first selector matching anywhere on the page, so a tweetButton
         elsewhere in the DOM could win.
         """
-        for sel in ('[data-testid="tweetButtonInline"]',
-                    '[data-testid="tweetButton"]',
-                    'button[data-testid*="tweetButton"]'):
+        for sel in self.reg.get("reply_post_button").all():
             try:
                 loc = scope.locator(sel)
                 for i in range(loc.count()):

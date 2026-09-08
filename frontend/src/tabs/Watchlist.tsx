@@ -47,6 +47,18 @@ export function Watchlist() {
     onError: (e) => reportError(e, "Could not remove that account"),
   });
 
+  // A demotion is temporary; this puts every account back to the mode you
+  // chose. It also runs by itself on every start.
+  const restoreAuto = useMutation({
+    mutationFn: () => api.post("/api/accounts/restore-auto"),
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      toast({ tone: "success", title: "Modes restored",
+        detail: `${d.restored ?? 0} account(s) back to the mode you set.` });
+    },
+    onError: (e) => reportError(e, "Could not restore modes"),
+  });
+
   const importFollowing = useMutation({
     mutationFn: () => api.post("/api/accounts/import-following"),
     onSuccess: (d) => {
@@ -121,6 +133,10 @@ export function Watchlist() {
           <span className="text-[12px] text-faint">
             Adds all follows as assisted, promotes a random 10 to auto.
           </span>
+          <Button variant="default" loading={restoreAuto.isPending}
+            onClick={() => restoreAuto.mutate()} className="ml-auto">
+            Restore my modes
+          </Button>
         </div>
       </Card>
 

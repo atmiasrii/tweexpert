@@ -101,6 +101,19 @@ def main():
     scheduler.add_job(_restart_chromium, "cron", hour=CHROMIUM_RESTART_HOUR, id="restart")
     scheduler.start()
 
+    # The day starts with the For You feed, not with a timer. Without this the
+    # first sweep waited out the full batch interval after launch.
+    try:
+        from .db.settings_store import set_setting
+        with session_scope() as sess:
+            set_setting(sess, "foryou_last_run", None)
+        log.info("startup: sweeping For You first")
+        foryou()
+        log.info("startup: now watching your accounts")
+        watch()
+    except Exception as e:
+        log.warning("startup sweep failed: %s", e)
+
     stop = {"v": False}
     for sig in ("SIGTERM", "SIGINT", "SIGBREAK"):
         if hasattr(signal, sig):

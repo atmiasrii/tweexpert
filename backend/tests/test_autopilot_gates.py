@@ -95,11 +95,11 @@ def test_batch_drops_below_threshold_and_stale(session):
     fresh = ParsedPost(x_post_id="1", author_handle="alice", created_at=now,
                        text="local models on a mac are usable for real dev tooling now")
     stale = ParsedPost(x_post_id="2", author_handle="bob",
-                       created_at=now - timedelta(minutes=200),
+                       created_at=now - timedelta(minutes=500),   # past the 6h For You window
                        text="inference latency is the whole game for agents")
     batch, tally = foryou_auto._pick_batch(session, [fresh, stale], "auto", 10, 0.0, 24)
     assert [p.author_handle for _, p in batch] == ["alice"]
-    assert tally["skipped"] == 1
+    assert tally["too_old"] == 1
 
     none_pass, tally2 = foryou_auto._pick_batch(session, [fresh], "auto", 10, 99.0, 24)
     assert none_pass == [] and tally2["below_threshold"] == 1
@@ -174,3 +174,17 @@ def test_unknown_tier_falls_back_to_free(session):
     from quill.governor import tiers
     set_setting(session, "account_tier", "platinum-deluxe")
     assert tiers.account_tier(session) == "free"
+
+
+def test_restricted_reply_posts_are_skipped_before_drafting(session):
+    """'Who can reply? Only some accounts can reply.' A real send hit this
+    dialog instead of a composer. Now it never gets as far as a draft."""
+    from quill.browser.base import ParsedPost
+    from quill.pipeline import relevance
+    now = datetime.now(timezone.utc)
+    p = ParsedPost(x_post_id="1", author_handle="toly", created_at=now,
+                   text="how dumb ai is at coding shows the phd glut was useless",
+                   reply_restricted=True)
+    assert "restricted" in relevance.skip_reason(p)
+    batch, tally = foryou_auto._pick_batch(session, [p], "auto", 10, 0.0, 24)
+    assert batch == [] and tally["restricted"] == 1

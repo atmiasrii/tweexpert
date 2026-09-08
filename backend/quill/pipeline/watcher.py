@@ -121,7 +121,7 @@ def sweep_home(session: Session) -> dict:
     return summary
 
 
-def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A",)) -> dict:
+def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A", "B", "C")) -> dict:
     """The home sweep, plus a direct read of the highest-tier profiles.
 
     The direct reads are a backstop: the algorithm does not put everything a

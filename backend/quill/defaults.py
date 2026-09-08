@@ -46,9 +46,15 @@ SHADOW_MIN_DRAFTS = 20
 
 # --- Relevance / freshness (R-01, R-02) --------------------------------
 RELEVANCE_THRESHOLD = 60
-RELEVANCE_THRESHOLD_AUTO = 78
-FRESHNESS_WINDOW_S = 75 * 60
-FRESHNESS_WINDOW_AUTO_S = 30 * 60
+# Measured, not guessed: on-topic fresh feed posts score 59-72, so the old 78
+# auto bar was unreachable. Relevance decides "worth drafting"; the critic and
+# the confidence bar decide "worth sending".
+RELEVANCE_THRESHOLD_AUTO = 55
+# The home/For You feed is not chronological (ages seen: 30 min to 3.7 days),
+# so a 30-minute window discarded almost everything. 90 minutes matches the
+# research's reply window and the hard skip gate in relevance.py.
+FRESHNESS_WINDOW_S = 90 * 60
+FRESHNESS_WINDOW_AUTO_S = 90 * 60
 
 # --- Draft caps (R-03) -------------------------------------------------
 PER_ACCOUNT_DAILY_DRAFT_CAP = 3
@@ -222,4 +228,4 @@ UNSAFE_PATTERNS = [
 # Watcher: the home sweep covers the whole watchlist in one read; these are the
 # extra direct profile reads per sweep, as a backstop for tier A posts the
 # timeline buries.
-DEEP_READS_PER_SWEEP = 2
+DEEP_READS_PER_SWEEP = 4

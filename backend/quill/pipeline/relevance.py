@@ -94,14 +94,24 @@ def score(session: Session, post: ParsedPost, account: Account | None) -> float:
     return round(raw * 100, 1)
 
 
-def skip_reason(post: ParsedPost) -> str:
+def skip_reason(post: ParsedPost, max_age_min: float = SKIP_AFTER_MIN) -> str:
     """Hard gates from the research. Cheap, and they run before any drafting so
-    a dead post never costs a model call."""
+    a dead post never costs a model call.
+
+    `max_age_min` is the reply window. 90 minutes is where the research puts
+    the useful end of a post's attention curve, and the watchlist keeps it. The
+    For You sweep passes a wider one: measured feeds carried two posts under 30
+    minutes and none between 30 and 90, so a 90-minute cut left nothing to
+    answer. Older posts earn less, they are not penalised, and the freshness
+    term of the score already ranks them below anything newer.
+    """
     from ..persona.guards import too_thin
+    if getattr(post, "reply_restricted", False):
+        return "author restricted who can reply"
     thin = too_thin(post.text)
     if thin:
         return thin
-    if _age_minutes(post) > SKIP_AFTER_MIN:
+    if _age_minutes(post) > max_age_min:
         return f"post is {int(_age_minutes(post))} min old, the window has closed"
     if post.replies > SKIP_REPLIES:
         return f"thread already has {post.replies} replies, nobody reads that far"

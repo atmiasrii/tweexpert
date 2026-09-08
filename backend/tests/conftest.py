@@ -86,3 +86,13 @@ def auth_client(client):
     csrf = r.json()["csrf"]
     client.headers.update({"X-CSRF-Token": csrf})
     return client
+
+
+@pytest.fixture(autouse=True)
+def _reset_login_limiter():
+    """The login rate limiter is process-global and a lockout test would
+    otherwise 429 every auth_client test that runs after it."""
+    import quill.api.auth as _auth
+    _auth._limiter = None
+    yield
+    _auth._limiter = None

@@ -22,6 +22,10 @@ class ParsedPost:
     media: bool = False
     lang: str = "en"
     parent_x_id: str = ""
+    # "Who can reply? Only some accounts can reply." X lets an author
+    # restrict replies; clicking Reply then opens a permissions dialog
+    # instead of a composer. Caught in the feed so it is never drafted.
+    reply_restricted: bool = False
 
     def metrics(self) -> dict:
         return {"likes": self.likes, "reposts": self.reposts,

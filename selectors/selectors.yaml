@@ -2,7 +2,24 @@
 # Every entry: a primary and >=1 fallback. Prefer data-testid over structure.
 # The canary (E-07) visits each surface and asserts every key still resolves.
 version: 1
-updated: "2026-08-31"
+updated: "2026-09-08"
+
+# Verification log. Every key below was proved against the live, logged-in DOM,
+# not guessed. Two things learned the hard way:
+#   * X strips every data-testid from the logged-out page, so nothing here can
+#     be checked from a logged-out browser; only the signed-in profile counts.
+#   * The timeline renders client-side and takes 10-20s on a cold load, so a
+#     lookup must wait (see _find_all wait_ms) or it reports a false miss.
+# Proof, by flow:
+#   2026-09-07 reply flow (post 2096972908828426747 -> reply 2096988199742816463):
+#     tweet, tweet_text, tweet_link, reply_button, composer, post_button
+#     (tweetButtonInline was the live one), and the target-article selector
+#     article[data-testid="tweet"]:has(a[href$="/status/{id}"]).
+#   2026-09-08 feed sweeps, 0 selector misses across ~100 reads:
+#     timeline, tweet, tweet_text, tweet_link, tweet_time (time[datetime]),
+#     and the engagement counts via [data-testid="reply|retweet|like"]
+#     aria-labels and a[href*="/analytics"].
+verified: "2026-09-08"
 
 surfaces:
   home:
@@ -13,7 +30,7 @@ surfaces:
     keys: [timeline, tweet, tweet_text, tweet_time, tweet_link]
   post:
     url_template: "https://x.com/{handle}/status/{id}"
-    keys: [tweet, tweet_text, reply_button, replies_region]
+    keys: [tweet, tweet_text, reply_button, replies_region, reply_post_button]
   search:
     url_template: "https://x.com/search?q={query}&f=live"
     keys: [timeline, tweet, tweet_text]
@@ -68,6 +85,14 @@ selectors:
     primary: '[data-testid="tweetButton"]'
     fallbacks:
       - '[data-testid="tweetButtonInline"]'
+      - 'button[data-testid*="tweetButton"]'
+  # The send button of the inline reply box on a status page. Distinct from
+  # post_button on purpose: the inline box uses tweetButtonInline, and taking
+  # the first page-wide match let a tweetButton elsewhere in the DOM win.
+  reply_post_button:
+    primary: '[data-testid="tweetButtonInline"]'
+    fallbacks:
+      - '[data-testid="tweetButton"]'
       - 'button[data-testid*="tweetButton"]'
   like_count:
     primary: '[data-testid="like"]'

@@ -353,7 +353,11 @@ def test_t11_selector_miss_disables_auto(session):
     assert result["ok"] is False
     assert "tweet" in result["missing"]
     session.refresh(acc)
-    assert acc.mode == "assisted"                 # auto disabled
+    assert acc.mode == "auto"                     # one miss is a render race
+    for _ in range(session_guard.CANARY_FAIL_THRESHOLD - 1):
+        session_guard.run_canary(session)
+    session.refresh(acc)
+    assert acc.mode == "assisted"                 # auto disabled after 3 in a row
     assert any(n["kind"] == "canary_failed" for n in notifier.recent())
 
 

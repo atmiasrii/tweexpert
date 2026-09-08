@@ -9,7 +9,8 @@ from sqlmodel import Session, select
 
 from ...db.engine import get_session
 from ...db.models import Account, Draft
-from ...db.settings_store import get_setting
+from ...db.settings_store import get_setting, set_setting
+from ...ops.session_guard import PREFERRED_MODES_KEY, restore_preferred_modes
 from ...pipeline.policy import shadow_complete
 from ..auth import require_auth
 from ..events import publish
@@ -94,5 +95,21 @@ def set_mode(account_id: int, body: ModeBody,
     acc.mode = body.mode
     session.add(acc)
     session.commit()
+    # The operator's stated mode is the source of truth. Any automatic
+    # demotion is temporary; /restore-auto (and startup) put this back.
+    prefs = dict(get_setting(session, PREFERRED_MODES_KEY, {}) or {})
+    prefs[acc.handle] = body.mode
+    set_setting(session, PREFERRED_MODES_KEY, prefs)
+    session.refresh(acc)   # commit expired the row; an expired row serialises as {}
     publish("account_mode", {"account_id": account_id, "mode": body.mode})
     return acc
+
+
+@router.post("/restore-auto")
+def restore_auto(session: Session = Depends(get_session), _=Depends(require_auth)):
+    """Undo temporary demotions: set every account back to the mode the
+    operator last chose for it. Returns how many accounts changed."""
+    restored = restore_preferred_modes(session)
+    if restored:
+        publish("account_mode", {"restored": restored})
+    return {"ok": True, "restored": restored}

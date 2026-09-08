@@ -9,6 +9,17 @@ Q-03 retries with exponential backoff + full jitter, capped at 3, and never
      for writes whose reconciliation is ambiguous.
 Q-04 every action produces an audit row.
 Q-05 minimum enforced gap between writes (delegated to the governor).
+
+Demotion policy. A write that hits ChallengeDetected or SessionDead is a real
+safety event: X is pushing back, or we are logged out, and auto mode must stop
+until a human looks. A SelectorMiss is not. X's timeline renders client-side
+and routinely takes 10-20s to settle, so a missed selector is usually a
+page-render race on one write, not evidence the registry is wrong. Demoting
+every auto account on one of those was how twenty accounts got flipped to
+assisted by a single event. `_disable_auto_and_alert` therefore alerts on all
+three, and changes account mode only for the first two. The canary
+(ops/session_guard.py) is what decides a selector is really broken, and it
+needs several consecutive misses before it acts.
 """
 from __future__ import annotations
 
@@ -160,7 +171,12 @@ class ActionBus:
                 self._disable_auto_and_alert(kind, target, e)
                 raise
             except SelectorMiss as e:
-                self._fail(intent_id, attempt, e, ambiguous=True)
+                # Every selector the reply path can miss (target article,
+                # composer, send button) is looked up BEFORE the send click,
+                # so nothing was posted. The draft is safe to try again; it
+                # used to sit in "approved" forever with nothing pointing at it.
+                self._fail(intent_id, attempt, e, ambiguous=False)
+                self._resolve_draft(authorization, "queued")
                 self._disable_auto_and_alert(kind, target, e)
                 raise
             except PostUnavailable as e:
@@ -467,11 +483,18 @@ class ActionBus:
             s.commit()
 
     def _disable_auto_and_alert(self, kind, target, exc):
+        """Alert on every hard write failure; demote auto accounts only for
+        the safety events (challenge / dead session). See the module
+        docstring for why a SelectorMiss is deliberately excluded."""
         from ..db.models import Account
-        with session_scope() as s:
-            for acc in s.exec(select(Account).where(Account.mode == "auto")).all():
-                self._disable_auto(s, acc, f"{type(exc).__name__}")
-            s.commit()
+        if isinstance(exc, (ChallengeDetected, SessionDead)):
+            with session_scope() as s:
+                for acc in s.exec(select(Account).where(Account.mode == "auto")).all():
+                    self._disable_auto(s, acc, f"{type(exc).__name__}")
+                s.commit()
+        else:
+            log.warning("selector miss on %s->%s (%s); alerting, not demoting",
+                        kind, target, exc)
         notifier.alert("challenge_detected" if isinstance(exc, ChallengeDetected)
                        else ("session_dead" if isinstance(exc, SessionDead)
                              else "canary_failed"),
