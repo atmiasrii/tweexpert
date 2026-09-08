@@ -112,6 +112,11 @@ class PlaywrightEngine:
             timezone_id=self.s.operator_timezone,
             args=list(self._CLEAN_EXIT_FLAGS),
         )
+        # Playwright waits 30s for any element an action cannot find. Every
+        # lookup here that can legitimately take long already passes its own
+        # budget, so the implicit one only ever adds dead time.
+        self._ctx.set_default_timeout(self.ACTION_TIMEOUT_MS)
+        self._ctx.set_default_navigation_timeout(45000)
         self._page = self._pick_page()
 
     def _pick_page(self):
@@ -147,6 +152,7 @@ class PlaywrightEngine:
     # cold load. Looking for tweets right after domcontentloaded was a race, and
     # losing it raised SelectorMiss on a page that was simply still spinning.
     FEED_WAIT_MS = 20000
+    ACTION_TIMEOUT_MS = 8000
     # How many unique posts one feed sweep should bring back, how many scrolls
     # it may spend getting there, how long to let X attach new articles after
     # each scroll (the feed is virtualised, so counting straight after the
@@ -590,17 +596,24 @@ class PlaywrightEngine:
             arts, _ = self._find_all("tweet", wait_ms=self.WRITE_WAIT_MS)
         except SelectorMiss:
             return ""
+        # count() answers at once; get_attribute() and inner_text() on a
+        # locator that matches nothing wait out the default timeout. Without
+        # the count check every article by someone else cost 30 seconds, and
+        # one verify held the browser for eleven minutes.
         for i in range(min(arts.count(), 30)):
             art = arts.nth(i)
+            link = art.locator('a[href*="/' + op + '/status/"]')
             try:
-                href = art.locator('a[href*="/' + op + '/status/"]').first.get_attribute("href")
+                if link.count() == 0:
+                    continue
+                href = link.first.get_attribute("href", timeout=2000)
             except Exception:
                 continue
             rid = status_id_from_href(href or "")
             if not rid or rid == x_post_id:
                 continue                      # that is the post we replied to
             try:
-                body = art.locator(self.reg.get("tweet_text").primary).first.inner_text()
+                body = art.locator(self.reg.get("tweet_text").primary).first.inner_text(timeout=2000)
             except Exception:
                 continue
             if texts_match(text, body):
