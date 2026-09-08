@@ -620,6 +620,16 @@ class PlaywrightEngine:
                 return rid
         return ""
 
+    def reply_exists(self, parent_x_id: str, text: str, permalink: str = "",
+                     author: str = "") -> str:
+        """The id of our reply to this post if it is there, else "". Opens
+        the post first; find_reply alone reads whatever page is loaded."""
+        try:
+            self._open_post(parent_x_id, permalink, author)
+        except PostUnavailable:
+            return ""
+        return self.find_reply(parent_x_id, text)
+
     def exists(self, idempotency_key: str, text: str) -> bool:
         """Kept for the reconcile probe; the real work happens in find_reply."""
         return False

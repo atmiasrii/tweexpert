@@ -200,6 +200,10 @@ class FixtureEngine:
     # Declared rather than duck-typed: ThreadedEngine forwards every
     # attribute, so hasattr(engine, "exists") is always True and cannot
     # be used to tell whether an engine can really answer this.
+    def reply_exists(self, parent_x_id: str, text: str, permalink: str = "",
+                     author: str = "") -> str:
+        return self.find_reply(parent_x_id, text)
+
     supports_exists = True
 
     def exists(self, idempotency_key: str, text: str) -> bool:

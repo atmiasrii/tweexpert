@@ -101,6 +101,16 @@ def main():
     scheduler.add_job(_restart_chromium, "cron", hour=CHROMIUM_RESTART_HOUR, id="restart")
     scheduler.start()
 
+    # Only this process can settle a write the last run left mid-flight,
+    # because only it can open the post and look. The API and worker both
+    # skip reconcile for that reason, so without this a killed send stayed
+    # "running" forever and its draft was never sent or re-queued.
+    try:
+        from .bus.action_bus import get_bus
+        log.info("startup: reconcile %s", get_bus().reconcile())
+    except Exception as e:
+        log.warning("startup reconcile failed: %s", e)
+
     # The day starts with the For You feed, not with a timer. Without this the
     # first sweep waited out the full batch interval after launch.
     try:

@@ -36,7 +36,7 @@ from ..browser import (ChallengeDetected, PostUnavailable, SelectorMiss,
                        SendNotConfirmed, SendRejected, SessionDead,
                        get_engine)
 from ..db.engine import session_scope
-from ..db.models import Action, Draft
+from ..db.models import Action, Authorization, Draft
 from ..logging_setup import get_logger
 from ..notify import notifier
 from ..governor import governor
@@ -380,34 +380,79 @@ class ActionBus:
                     Action.state.in_(["running", "pending"]))).all()
                 if a.state == "running" or _older_than(a.created_at, cutoff)
             ]
+            now = datetime.now(timezone.utc)
             for a in stuck:
                 payload = json.loads(a.payload_json or "{}")
                 content = payload.get("content", "")
-                exists = False
-                # ThreadedEngine forwards any attribute, so hasattr always says
-                # yes; ask the engine to declare the capability instead.
-                if getattr(engine, "supports_exists", False):
+                authz_row = (s.get(Authorization, a.authorization_id)
+                             if a.authorization_id else None)
+                # Open the post and look for our reply. "" means we looked and
+                # it is not there; None means we could not look.
+                rid = None
+                if a.kind == "reply" and a.target and content:
                     try:
-                        exists = engine.exists(a.idempotency_key, content)
+                        rid = engine.reply_exists(a.target, content,
+                                                  payload.get("permalink", ""),
+                                                  payload.get("author", "")) or ""
                     except Exception as e:
                         log.warning("reconcile probe failed for %s: %s", a.id, e)
-                        exists = False
-                if exists:
-                    a.state = "done"
-                    a.outcome = "reconciled"
-                    a.finished_at = datetime.now(timezone.utc)
+                # The idempotency-key probe, for engines that keep one. Checked
+                # with `is True` because ThreadedEngine answers any attribute
+                # name with a callable.
+                if not rid and getattr(engine, "supports_exists", False) is True:
+                    try:
+                        if engine.exists(a.idempotency_key, content):
+                            rid = a.x_post_id or "reconciled"
+                    except Exception as e:
+                        log.warning("reconcile probe failed for %s: %s", a.id, e)
+                a.finished_at = now
+                if rid:
+                    a.state, a.outcome, a.x_post_id = "done", "reconciled", rid
+                    if authz_row is not None:
+                        authz_row.consumed_at = now
+                        s.add(authz_row)
+                        governor.record_write(s, a.kind, authz_row.mode)
+                        self._mark_draft_sent(s, authz_row.draft_id, rid)
                     resolved["reconciled"] += 1
-                    log.info("reconciled intent %s: post exists, not resending", a.id)
+                    log.info("reconciled intent %s: reply %s is live", a.id, rid)
+                elif rid == "" and authz_row is not None and authz_row.consumed_at is None:
+                    # Looked, not there: safe to send again. An unattended
+                    # send goes back on the schedule; a human approval goes
+                    # back to the queue for the human.
+                    a.state, a.outcome = "abandoned", "not_posted_requeued"
+                    resolved["requeued"] = resolved.get("requeued", 0) + 1
+                    self._requeue_after_reconcile(s, a, authz_row, payload, now)
                 else:
                     # ambiguous write => do not retry automatically (Q-03)
-                    a.state = "abandoned"
-                    a.outcome = "abandoned_ambiguous"
-                    a.finished_at = datetime.now(timezone.utc)
+                    a.state, a.outcome = "abandoned", "abandoned_ambiguous"
+                    if authz_row is not None and authz_row.draft_id:
+                        d = s.get(Draft, authz_row.draft_id)
+                        if d is not None and d.status not in ("sent", "dismissed"):
+                            d.status = "needs_review"
+                            s.add(d)
                     resolved["abandoned"] += 1
                     log.warning("abandoned ambiguous intent %s", a.id)
                 s.add(a)
             s.commit()
         return resolved
+
+    def _requeue_after_reconcile(self, s: Session, a: Action, authz_row,
+                                 payload: dict, now: datetime) -> None:
+        d = s.get(Draft, authz_row.draft_id) if authz_row.draft_id else None
+        if d is None:
+            return
+        expires = authz_row.expires_at
+        if expires is not None and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if a.issuer == "policy" and (expires is None or expires > now):
+            from ..pipeline.pipeline import _stash_pending
+            _stash_pending(s, d.id, authz_row.id, a.target, now,
+                           payload.get("permalink", ""), payload.get("author", ""))
+            log.info("intent %s never posted; draft %s back on the schedule", a.id, d.id)
+        else:
+            d.status = "queued"
+            s.add(d)
+            log.info("intent %s never posted; draft %s back in the queue", a.id, d.id)
 
     # -- helpers ---------------------------------------------------------
     def _enter(self):
