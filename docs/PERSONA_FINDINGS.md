@@ -99,6 +99,36 @@ Two things this exposes:
   suggests the critic quietly rewards statements over questions even though the
   question archetype is the highest-value one.
 
+### 2026-09-08, first unattended day
+
+Three faults surfaced by a day of real running, none visible from the corpus.
+
+**Every account went assisted on one canary miss.** `session_guard` demoted all
+twenty auto accounts on a single `canary_failed`, and the canary raced X's
+render exactly like the feed reads had. Now a selector miss during a write
+alerts but changes no mode, the canary needs three consecutive misses, and the
+operator's chosen mode is recorded as a preference and restored on every
+start. Verified: a live composer miss later in the day left all 20 on auto.
+
+**The feed cannot supply fresh posts.** Measured across 55 posts from For You
+plus the live-sorted Following feed: 2 under 30 minutes, none between 30 and
+90, 13 under six hours, 40 older. Twenty accounts do not write faster than
+that. The 90-minute research window stays on the watchlist, where a post is
+answered the moment it appears; the For You path gets six hours, on the basis
+that an older post earns less but is not penalised and the freshness term
+already ranks it lower. With the wider window one sweep went 55 read, 4
+picked, 3 sent.
+
+**Restricted replies.** A send hit "Who can reply? Only some accounts can
+reply." where the composer should have been. X marks these in the feed; they
+are now flagged on extraction and dropped before any model call.
+
+Also measured: a 300-900px wheel scroll clears about one tweet, which is why
+sweeps saw 12-18 posts. At 1400-2400px with a settle-wait, 30 posts in 9
+rounds. And the voice card listed four infra niches while the persona is
+"deep in AI and startups", so most on-persona posts scored off-topic;
+widened to match.
+
 ### 2026-09-02, eval run 2 (all seven guards)
 
 Full report in `PERSONA_EVAL.md`.
