@@ -129,6 +129,34 @@ rounds. And the voice card listed four infra niches while the persona is
 "deep in AI and startups", so most on-persona posts scored off-topic;
 widened to match.
 
+Later the same day, with sends stuck at six:
+
+**One verify held the browser for eleven minutes.** `find_reply` asked each
+article for the operator's link; on articles that had none, Playwright waited
+its 30-second default before answering. Twenty-odd articles, eleven minutes,
+and every other job in the process queued behind it with nothing in the log.
+The reply itself had posted in the first minute. Now the lookup checks
+`count()` first, reads carry a two-second budget, the context's implicit
+timeout is eight seconds, and the actor has a five-minute call budget past
+which it dumps every thread's stack, kills the driver, and restarts on a
+fresh thread.
+
+**A draft against a post that does not exist.** The Deck's "Sweep now" ran
+in the API process, whose engine is the offline fixture, and the fixture
+posts went through the real pipeline into the real send queue. X redirected
+their permalink to Explore a beat after load, the single URL check had
+already passed, and the send failed on a page with no target. The endpoint
+now hands the sweep to the browser process, and the post check repeats
+across the settle.
+
+**A scheduled send vanished.** `send_due_auto` wrote back the pending list
+it had read at the start of its run. With sends taking minutes, the sweep's
+additions in between were erased. It now merges.
+
+Scale check for the day: sweeps read 26-35 posts per feed and pick 4-8;
+the limit on sends was never supply, it was each of the faults above
+stopping the sender. Seven verified by 14:30 UTC.
+
 ### 2026-09-02, eval run 2 (all seven guards)
 
 Full report in `PERSONA_EVAL.md`.

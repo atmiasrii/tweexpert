@@ -341,7 +341,15 @@ def send_due_auto(session: Session) -> list[str]:
                 session.commit()
         except Exception as e:
             log.warning("auto send failed: %s", e)
-    set_setting(session, "_pending_auto", remaining)
+    # A send takes minutes, and the sweep keeps scheduling while it runs.
+    # Writing back the snapshot taken at the start silently dropped every
+    # item added in between. Keep what arrived since, drop only what this
+    # run handled.
+    handled = {item["draft_id"] for item in pend}
+    session.expire_all()
+    fresh = get_setting(session, "_pending_auto", [])
+    added = [item for item in fresh if item["draft_id"] not in handled]
+    set_setting(session, "_pending_auto", remaining + added)
     return sent
 
 
