@@ -24,6 +24,18 @@ log = get_logger("quill.actor")
 _STOP = object()
 
 
+
+def _target_closed(exc: BaseException) -> bool:
+    """Playwright's 'Target page, context or browser has been closed', by name
+    or by message, so a version bump in the class name does not blind us."""
+    name = type(exc).__name__
+    msg = str(exc).lower()
+    return (name == "TargetClosedError"
+            or "has been closed" in msg
+            or "browser has been closed" in msg
+            or "connection closed" in msg)
+
+
 class BrowserActor:
     def __init__(self, factory: Callable[[], object]):
         self._factory = factory
@@ -43,8 +55,23 @@ class BrowserActor:
                 if self._engine is None:
                     self._engine = self._factory()   # created ON this thread
                 fut.set_result(fn(self._engine))
-            except BaseException as e:                # propagate to the caller
-                fut.set_exception(e)
+            except BaseException as e:
+                # Chromium can drop the page or the whole context under us
+                # (a crash, a tab X closes, a navigation that kills the
+                # target). The old actor kept the dead engine forever, so
+                # every call after that failed until the process restarted.
+                # Rebuild once and retry; if that fails too, report it.
+                if _target_closed(e):
+                    log.warning("browser target closed (%s); rebuilding the engine", e)
+                    self._teardown()
+                    try:
+                        self._engine = self._factory()
+                        fut.set_result(fn(self._engine))
+                        continue
+                    except BaseException as e2:
+                        fut.set_exception(e2)
+                        continue
+                fut.set_exception(e)                  # propagate to the caller
 
     def _teardown(self) -> None:
         try:

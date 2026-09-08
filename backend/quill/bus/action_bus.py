@@ -198,6 +198,12 @@ class ActionBus:
             except Exception as e:
                 if attempt >= MAX_ATTEMPTS:
                     self._fail(intent_id, attempt, e, ambiguous=False)
+                    # A browser that died at navigation posted nothing, so the
+                    # draft is safe to send again. Anything else that failed
+                    # after three tries may have gone out; let a human look.
+                    closed = "has been closed" in str(e).lower()
+                    self._resolve_draft(authorization,
+                                        "queued" if closed else "needs_review")
                     self._register_publish_failure(target)
                     raise
                 backoff = (2 ** attempt) + random.uniform(0, 2 ** attempt)  # Q-03
