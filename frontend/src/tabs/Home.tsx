@@ -10,6 +10,7 @@ import {
 import { IconArrowRight, IconCheck, IconExternal, IconSpark } from "../components/Icons";
 import { LaunchPanel, useLaunchStatus } from "../components/LaunchPanel";
 import { PipelineFlow } from "../components/PipelineFlow";
+import { RunProgress } from "../components/RunProgress";
 import { SentReplies } from "../components/SentReplies";
 
 export function Home({ go }: { go: (t: TabId) => void }) {
@@ -99,6 +100,9 @@ export function Home({ go }: { go: (t: TabId) => void }) {
             : u?.read_budget && u.reads > u.read_budget * 0.85 ? "warn" : "neutral"}
         />
       </div>
+
+      {/* Is the run on track, and is it even still running? */}
+      <RunProgress />
 
       {/* Live: what Quill is doing right now, step by step. */}
       <PipelineFlow />

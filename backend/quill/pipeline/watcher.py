@@ -130,7 +130,14 @@ def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A", "B", "C")) -
     followed account posts on the timeline, and tier A is where missing a post
     costs the most. They are budgeted, so they stop before the sweep does.
     """
-    summary = sweep_home(session)
+    # The home read is one selector lookup against a client-rendered timeline,
+    # so it can miss on a slow render. It used to take the whole sweep down
+    # with it, deep reads included, which is a lot to lose to one bad page.
+    try:
+        summary = sweep_home(session)
+    except SelectorMiss as e:
+        log.warning("home sweep missed (%s); going straight to the deep reads", e)
+        summary = {"polled": 0, "queued": 0, "discarded": 0, "home_failed": 1}
     if summary.get("skipped"):
         return summary
 

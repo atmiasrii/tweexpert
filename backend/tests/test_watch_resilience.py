@@ -68,6 +68,24 @@ def test_a_render_miss_does_not_stop_the_sweep(session, monkeypatch):
     assert still_on.active is True, "a render miss must not deactivate an account"
 
 
+def test_a_failed_home_read_still_runs_the_deep_reads(session, monkeypatch):
+    """The home read is one lookup against a client-rendered timeline. Losing
+    the whole sweep to it costs every deep read behind it."""
+    _accounts(session)
+    seen = []
+
+    def boom(_s):
+        raise SelectorMiss("tweet")
+
+    monkeypatch.setattr(watcher, "sweep_home", boom)
+    monkeypatch.setattr(watcher, "watch_once",
+                        lambda s, acc: seen.append(acc.handle) or [])
+    summary = watcher.watch_all(session)
+
+    assert summary["home_failed"] == 1
+    assert len(seen) == 3, "the deep reads must still happen"
+
+
 @pytest.mark.parametrize("body,expected", [
     ("This account doesn’t exist Try searching for another.", True),
     ("Account suspended X suspends accounts that violate", True),

@@ -229,3 +229,13 @@ UNSAFE_PATTERNS = [
 # extra direct profile reads per sweep, as a backstop for tier A posts the
 # timeline buries.
 DEEP_READS_PER_SWEEP = 4
+
+# --- unattended run (S22) ------------------------------------------------
+RUN_TARGET_REPLIES = 40             # replies the day owes
+RUN_DEADLINE_LOCAL = "22:00"        # local time the target is measured against
+RUN_HISTORY_DAYS = 14               # finished run records kept for the dashboard
+RELAX_STEP_INTERVAL_S = 15 * 60     # one intake step per window, either way
+SUPERVISOR_INTERVAL_S = 60          # how often the API checks the run
+RESTART_COOLDOWN_S = 5 * 60         # between restarts of the same process
+RESTART_MAX_PER_PROC = 6            # per process per day, then hand it to a human
+LOGIN_WINDOW_S = 15 * 60            # how long a hand sign-in owns the profile

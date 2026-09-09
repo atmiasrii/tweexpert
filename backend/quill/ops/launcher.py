@@ -26,7 +26,7 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from sqlmodel import Session, select
@@ -114,6 +114,17 @@ def _pids(session: Session) -> dict[str, int]:
 def running(session: Session) -> dict[str, bool]:
     pids = _pids(session)
     return {name: _alive(pids.get(name, 0)) for name in PROCS}
+
+
+def pid_of(session: Session, name: str) -> int:
+    """The recorded pid of one supervised process, 0 if there is none."""
+    return int(_pids(session).get(name, 0) or 0)
+
+
+def terminate(pid: int) -> None:
+    """Public wrapper. The supervisor kills a wedged process before restarting
+    it, because start() skips anything whose pid is still alive."""
+    _terminate(pid)
 
 
 def _spawn(name: str, engine: str) -> int:
@@ -214,6 +225,14 @@ def open_login(session: Session) -> dict:
     Quill never handles the password. The browser process is stopped first: the
     persistent profile takes exactly one owner, and the login window must be it.
     """
+    # Tell the supervisor to keep its hands off the browser: for the next few
+    # minutes the login window is the profile's one legitimate owner, and a
+    # restart here would put two processes on it.
+    from ..defaults import LOGIN_WINDOW_S
+    set_setting(session, "login_window_until",
+                (datetime.now(timezone.utc)
+                 + timedelta(seconds=LOGIN_WINDOW_S)).isoformat())
+
     pids = _pids(session)
     if pids.get("browser") and _alive(pids["browser"]):
         _terminate(pids["browser"])

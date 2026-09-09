@@ -16,7 +16,7 @@ from ..logging_setup import get_logger, setup_logging
 from .routes import (accounts, analytics_routes, auth_routes, autopilot,
                      extension_routes, governor_routes, launch_routes,
                      live_routes, notify_routes, ops_routes, persona_routes,
-                     studio)
+                     run_routes, studio)
 
 log = get_logger("quill.api")
 
@@ -46,7 +46,7 @@ def create_app(run_startup: bool = True) -> FastAPI:
               analytics_routes.export, governor_routes.router, ops_routes.router,
               ops_routes.events_router, notify_routes.router,
               extension_routes.router, launch_routes.router,
-              live_routes.router):
+              live_routes.router, run_routes.router):
         app.include_router(r)
 
     # A governor refusal is the safeguard working, not a server fault. Without
@@ -100,9 +100,36 @@ def create_app(run_startup: bool = True) -> FastAPI:
                         log.info("autostart: %s", res.get("started") or "already running")
                     except Exception as e:      # never block the API on this
                         log.warning("autostart failed: %s", e)
+            _start_supervisor()
             log.info("Quill API started (engine=%s)", s.browser_engine)
 
     return app
+
+
+def _start_supervisor() -> None:
+    """Watch the unattended run from the one process that outlives it.
+
+    The worker's watchdog cannot report a dead worker and cannot restart
+    anything, which is how live mode stayed "on" all morning with both
+    processes gone. This does the restarting, and no-ops whenever live mode is
+    off, so pressing Stop still means stop.
+    """
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from ..defaults import SUPERVISOR_INTERVAL_S
+    from ..ops import supervisor
+
+    def _tick():
+        try:
+            with session_scope() as sess:
+                supervisor.tick(sess)
+        except Exception as e:                  # a supervisor must not die
+            log.warning("supervisor tick failed: %s", e)
+
+    sched = BackgroundScheduler(timezone="UTC")
+    sched.add_job(_tick, "interval", seconds=SUPERVISOR_INTERVAL_S,
+                  id="supervisor", max_instances=1, coalesce=True)
+    sched.start()
+    log.info("run supervisor watching every %ds", SUPERVISOR_INTERVAL_S)
 
 
 def _warn_if_public(s) -> None:
