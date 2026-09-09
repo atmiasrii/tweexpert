@@ -232,7 +232,7 @@ DEEP_READS_PER_SWEEP = 4
 
 # --- unattended run (S22) ------------------------------------------------
 RUN_TARGET_REPLIES = 40             # replies the day owes
-RUN_DEADLINE_LOCAL = "22:00"        # local time the target is measured against
+RUN_DEADLINE_LOCAL = "23:00"        # local; quiet hours start 23:30, so this uses the day
 RUN_HISTORY_DAYS = 14               # finished run records kept for the dashboard
 RELAX_STEP_INTERVAL_S = 15 * 60     # one intake step per window, either way
 SUPERVISOR_INTERVAL_S = 60          # how often the API checks the run

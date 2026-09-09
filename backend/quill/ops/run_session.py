@@ -103,6 +103,13 @@ def progress(session: Session, rec: dict, now: datetime | None = None) -> dict:
     started = datetime.fromisoformat(rec["started_at"])
     if started.tzinfo is None:
         started = started.replace(tzinfo=now.tzinfo)
+
+    # Quiet hours are not run time. A record that rolls over at midnight would
+    # otherwise read as seven hours behind the moment the window lifts, and
+    # would widen the intake at breakfast to catch up on a night when sending
+    # was forbidden.
+    started = max(started, _active_start(session, now))
+
     hh, mm = (int(x) for x in str(rec.get("deadline", DEFAULT_DEADLINE)).split(":"))
     deadline = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
 
@@ -127,6 +134,19 @@ def progress(session: Session, rec: dict, now: datetime | None = None) -> dict:
             "reachable": capacity >= owed,
             "deadline_at": deadline.isoformat(),
             "started_at": rec["started_at"]}
+
+
+def _active_start(session: Session, now: datetime) -> datetime:
+    """When today's sending window opened: the end of the quiet hours."""
+    from ..defaults import QUIET_END
+    raw = str(get_setting(session, "quiet_end", QUIET_END))
+    try:
+        hh, mm = (int(x) for x in raw.split(":"))
+    except ValueError:
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    drift = timedelta(minutes=int(getattr(governor.get_day(session),
+                                          "quiet_drift_min", 0) or 0))
+    return now.replace(hour=hh, minute=mm, second=0, microsecond=0) + drift
 
 
 def _level_for(behind: float) -> int:
@@ -155,10 +175,14 @@ def adjust(session: Session, rec: dict, prog: dict,
     current = int(rec.get("relax_level", 0))
     wanted = _level_for(float(prog.get("behind_by", 0.0)))
 
-    # A target that cannot fit the time left will not fit a wider intake
-    # either. Relaxing further would only spend the remaining sends on the
-    # worst posts on offer, so hold where we are.
-    if not prog.get("reachable", True) and wanted > current:
+    # Freeze only when nothing more can go out today at all. The first version
+    # froze whenever the target was arithmetically out of reach, which on a
+    # late start meant it froze within the hour and never widened the intake
+    # once: 16 sent against 40 with the one lever untouched all evening. That
+    # reasoning assumed send slots were the scarce thing. They were not; usable
+    # candidates were. Widening intake cannot lower reply quality either, since
+    # the confidence bar sits downstream of it and is never touched here.
+    if int(prog.get("capacity_left", 1)) <= 0 and wanted > current:
         return current
 
     if wanted == current:

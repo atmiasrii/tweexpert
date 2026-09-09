@@ -70,6 +70,7 @@ def test_a_target_that_cannot_fit_the_time_left_is_unreachable(session, monkeypa
     rec = run_session.get_or_start(session)
     rec["started_at"] = _at(rec, "10:00").isoformat()
     rec["target"] = 40
+    rec["deadline"] = "22:00"
     set_setting(session, "min_write_spacing_s", 300)
     monkeypatch.setattr(run_session, "verified_sends_today", lambda s: 12)
     # 21:00 -> 60 minutes left, room for 12 more at 5-minute spacing, 28 owed.
@@ -130,14 +131,50 @@ def test_the_ladder_stops_at_its_floor(session):
     assert get_setting(session, "foryou_relevance_min") == 25
 
 
-def test_an_unreachable_target_freezes_the_ladder(session):
+def test_behind_and_short_on_time_still_widens_the_intake(session):
+    """Tonight's lesson. The ladder froze at 0 all evening because the target
+    was arithmetically out of reach, so the one lever never moved while the
+    real shortage was candidates, not send slots. Widening intake cannot lower
+    reply quality; the confidence bar does that job and is never touched."""
     rec = run_session.get_or_start(session)
     now = datetime.now(timezone.utc)
-    run_session.adjust(session, rec, {"behind_by": 99.0, "reachable": True}, now=now)
+    run_session.adjust(session, rec,
+                       {"behind_by": 20.0, "reachable": False, "capacity_left": 8},
+                       now=now)
     assert rec["relax_level"] == 1
-    run_session.adjust(session, rec, {"behind_by": 99.0, "reachable": False},
-                       now=now + timedelta(minutes=16))
-    assert rec["relax_level"] == 1, "a target out of reach must not relax further"
+
+
+def test_no_send_slots_left_freezes_the_ladder(session):
+    """Past the point where anything can still go out, widening is pointless."""
+    rec = run_session.get_or_start(session)
+    now = datetime.now(timezone.utc)
+    run_session.adjust(session, rec,
+                       {"behind_by": 99.0, "reachable": False, "capacity_left": 0},
+                       now=now)
+    assert rec["relax_level"] == 0
+
+
+def test_quiet_hours_are_not_counted_against_the_pace(session):
+    """A record that rolls over at midnight must not read as seven hours behind
+    the moment the quiet window lifts."""
+    from quill.db.settings_store import set_setting as _set
+    _set(session, "quiet_start", "23:30")
+    _set(session, "quiet_end", "07:30")
+    day = governor_day(session)
+    rec = run_session.get_or_start(session)
+    rec["started_at"] = _at(rec, "00:05").isoformat()
+    rec["target"] = 40
+    p = run_session.progress(session, rec, now=_at(rec, "07:35"))
+    assert p["expected"] < 1.0, "the run has barely begun, not slept through a third of it"
+
+
+def governor_day(session):
+    from quill.governor import governor
+    d = governor.get_day(session)
+    d.quiet_drift_min = 0
+    session.add(d)
+    session.commit()
+    return d
 
 
 def test_relaxation_never_touches_the_reply_quality_bar(session):
