@@ -202,7 +202,12 @@ def start(session: Session, engine: str = "playwright") -> dict:
 
     set_setting(session, PIDS_KEY, pids)
     set_setting(session, LIVE_KEY, True)
-    set_setting(session, "live_started_at", datetime.now(timezone.utc).isoformat())
+    # Only stamp when live mode actually came up. Stamping unconditionally
+    # meant an API restart, whose autostart starts nothing because both
+    # processes are already alive, reset the run's start time to now and threw
+    # away the day's pace window.
+    if started or not get_setting(session, "live_started_at", None):
+        set_setting(session, "live_started_at", datetime.now(timezone.utc).isoformat())
     set_setting(session, "live_engine", engine)
     log.info("live mode ON (engine=%s, started=%s)", engine, started)
     return {"live": True, "started": started, "pids": pids, "engine": engine}
