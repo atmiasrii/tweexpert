@@ -219,7 +219,10 @@ def _jsonl(payload: dict) -> None:
     try:
         d = get_settings().data_dir / "traces"
         d.mkdir(parents=True, exist_ok=True)
-        path: Path = d / (datetime.now(timezone.utc).strftime("%Y-%m-%d") + ".jsonl")
+        # The file is named for the operator's day, like the run record and
+        # the governor, so "yesterday's trace" means the same thing everywhere.
+        from ..governor.governor import local_now
+        path: Path = d / (local_now().strftime("%Y-%m-%d") + ".jsonl")
         payload = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **payload}
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(payload, default=str) + "\n")
