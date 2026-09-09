@@ -50,6 +50,18 @@ def _fresh_db():
 @pytest.fixture
 def session():
     with session_scope() as s:
+        # Daytime by default. Reads and writes are both refused during quiet
+        # hours, so without this the suite passed by day and failed at night.
+        # Tests about quiet hours set their own window on top of this.
+        from quill.db.settings_store import set_setting
+        from quill.governor import governor
+        now = governor.local_now()
+        set_setting(s, "quiet_start", f"{(now.hour + 3) % 24:02d}:00")
+        set_setting(s, "quiet_end", f"{(now.hour + 3) % 24:02d}:01")
+        day = governor.get_day(s)
+        day.quiet_drift_min = 0
+        s.add(day)
+        s.commit()
         yield s
 
 

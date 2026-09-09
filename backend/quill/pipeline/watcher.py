@@ -164,6 +164,13 @@ def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A", "B", "C")) -
     followed account posts on the timeline, and tier A is where missing a post
     costs the most. They are budgeted, so they stop before the sweep does.
     """
+    # Quiet hours quiet the reads too. The governor already refuses writes at
+    # night, but this sweep kept scrolling the timeline every 90 seconds until
+    # morning: a read budget spent on posts nothing could answer, and a
+    # browser scrolling at 2am is not what a person does.
+    if governor.in_quiet_hours(session):
+        return {"skipped": "quiet hours"}
+
     # The home read is one selector lookup against a client-rendered timeline,
     # so it can miss on a slow render. It used to take the whole sweep down
     # with it, deep reads included, which is a lot to lose to one bad page.

@@ -98,7 +98,11 @@ def main():
     scheduler.add_job(presence, "interval", minutes=17, id="presence")
     scheduler.add_job(sends, "interval", seconds=30, id="sends")
     scheduler.add_job(foryou, "interval", minutes=1, id="foryou")   # checks its own interval
-    scheduler.add_job(_restart_chromium, "cron", hour=CHROMIUM_RESTART_HOUR, id="restart")
+    # The hour is meant in the operator's own night. The scheduler runs in
+    # UTC, so without the timezone "4" landed at 09:30 local, in the middle of
+    # the morning's sending window.
+    scheduler.add_job(_restart_chromium, "cron", hour=CHROMIUM_RESTART_HOUR,
+                      timezone=get_settings().operator_timezone, id="restart")
     scheduler.start()
 
     # Only this process can settle a write the last run left mid-flight,

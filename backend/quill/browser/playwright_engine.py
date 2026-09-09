@@ -443,8 +443,18 @@ class PlaywrightEngine:
                     "tweet", wait_ms=self.FEED_WAIT_MS if rnd == 0 else 0)
             except SelectorMiss:
                 if rnd == 0:
-                    raise
-                tweets = None                     # virtualiser mid-swap
+                    # X's "Something went wrong. Try reloading." page has a
+                    # Retry button and no articles. A person clicks it; the
+                    # old code waited out the feed budget and gave up.
+                    if self._retry_if_broken():
+                        try:
+                            tweets, _sel = self._find_all("tweet", wait_ms=self.FEED_WAIT_MS)
+                        except SelectorMiss:
+                            raise
+                    else:
+                        raise
+                else:
+                    tweets = None                 # virtualiser mid-swap
             added = 0
             count = tweets.count() if tweets is not None else 0
             for i in range(count):
@@ -471,6 +481,30 @@ class PlaywrightEngine:
         log.info("feed sweep: %d unique posts in %d round(s) (%s)",
                  len(out), rnd + 1, reason or "round limit")
         return out[:target]
+
+    _BROKEN_PAGE = ("something went wrong", "try reloading")
+
+    def _retry_if_broken(self) -> bool:
+        """Click Retry on X's transient error page. True if it was that page."""
+        try:
+            body = self._page.locator("main").first.inner_text(timeout=3000).lower()
+        except Exception:
+            return False
+        if not any(m in body for m in self._BROKEN_PAGE):
+            return False
+        try:
+            btn = self._page.get_by_role("button", name="Retry")
+            if btn.count():
+                log.info("X showed 'Something went wrong'; clicking Retry")
+                btn.first.click(timeout=3000)
+            else:
+                log.info("X showed 'Something went wrong' with no Retry; reloading")
+                self._page.reload(wait_until="domcontentloaded", timeout=45000)
+            time.sleep(random.uniform(1.5, 3.0))
+            return True
+        except Exception as e:
+            log.info("retry on broken page failed: %s", e)
+            return False
 
     def read_post(self, x_post_id: str, depth: int = 3) -> list[ParsedPost]:
         # E-11: reading replies improves context and looks human

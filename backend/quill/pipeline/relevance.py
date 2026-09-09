@@ -89,9 +89,31 @@ def score(session: Session, post: ParsedPost, account: Account | None) -> float:
     if person and person.engagements:
         prior = min(person.engagements / 10.0, 1.0)
 
-    raw = (0.30 * topical + 0.20 * fresh + 0.15 * tier_w +
-           0.20 * answerable + 0.10 * prior + 0.05 * sat)
+    # Momentum: how fast the post is gathering likes, not how many it has. A
+    # post with 30 likes ten minutes in is the one whose replies get read; the
+    # same 30 likes after six hours is a post the feed has finished with. This
+    # is what "the winning tweets, even when they are new" means in numbers.
+    momentum = _momentum(post, age_min)
+
+    raw = (0.28 * topical + 0.18 * fresh + 0.12 * tier_w +
+           0.18 * answerable + 0.09 * prior + 0.05 * sat + 0.10 * momentum)
     return round(raw * 100, 1)
+
+
+# Likes per minute at which momentum saturates. Three a minute is a post that
+# will have a few hundred within the hour, which on this account's feed is the
+# top of the range.
+MOMENTUM_FULL_LPM = 3.0
+
+
+def _momentum(post: ParsedPost, age_min: float) -> float:
+    likes = max(0, int(getattr(post, "likes", 0) or 0))
+    if likes == 0:
+        return 0.0
+    # Under two minutes the rate is noise: one like in thirty seconds is not a
+    # signal. Treat very young posts as two minutes old for the rate.
+    per_min = likes / max(age_min, 2.0)
+    return min(per_min / MOMENTUM_FULL_LPM, 1.0)
 
 
 def skip_reason(post: ParsedPost, max_age_min: float = SKIP_AFTER_MIN) -> str:
