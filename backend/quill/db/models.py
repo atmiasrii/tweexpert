@@ -263,3 +263,49 @@ class Activity(SQLModel, table=True):
     post_x_id: str = ""
     draft_id: Optional[int] = None
     ok: bool = True
+
+
+# --- run trace ---------------------------------------------------------
+class SweepRun(SQLModel, table=True):
+    """One pass over one source: a For You sweep, a timeline watch, a profile
+    read. The unit "was this run any good" is answered against."""
+    __tablename__ = "sweep_run"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    kind: str = Field(index=True)          # foryou|watch|profile
+    source: str = ""                       # "For You + Following", "@handle"
+    started_at: datetime = Field(default_factory=utcnow)
+    finished_at: Optional[datetime] = None
+    seen: int = 0
+    picked: int = 0
+    drafted: int = 0
+    scheduled: int = 0
+    sent: int = 0
+    summary_json: str = "{}"               # per-reason skip counts and the rest
+
+
+class TweetTrace(SQLModel, table=True):
+    """Everything that happened to one post in one run, in order.
+
+    The answer to "why did this tweet not get a reply" used to be spread over
+    the activity trail, the draft row, the action row and three log files.
+    This is that answer in one row.
+    """
+    __tablename__ = "tweet_trace"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_id: int = Field(index=True, foreign_key="sweep_run.id")
+    x_post_id: str = Field(index=True)
+    author: str = ""
+    source: str = ""                       # which feed or profile surfaced it
+    post_created_at: Optional[datetime] = None
+    likes: int = 0
+    replies: int = 0
+    views: int = 0
+    relevance: Optional[float] = None
+    stage: str = "seen"                    # latest stage
+    outcome: str = ""                      # terminal stage, once reached
+    reason: str = ""                       # the last detail, usually why
+    draft_id: Optional[int] = None
+    sent_x_post_id: str = ""
+    events_json: str = "[]"                # [{at, stage, detail}]
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)

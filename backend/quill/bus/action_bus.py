@@ -164,6 +164,11 @@ class ActionBus:
                         self._mark_draft_sent(s, authorization.draft_id, x_post_id)
                     s.commit()
                     self._reset_failures(s, target)
+                    if kind == "reply":
+                        from ..ops import trace
+                        trace.note(s, target, "sent", f"verified on the page as {x_post_id}",
+                                   draft_id=authorization.draft_id if authorization else None,
+                                   sent_x_post_id=x_post_id)
                     return s.get(Action, intent_id)
             except (ChallengeDetected, SessionDead) as e:
                 # never retry through a challenge / dead session (E-05, E-03)
@@ -177,12 +182,14 @@ class ActionBus:
                 # used to sit in "approved" forever with nothing pointing at it.
                 self._fail(intent_id, attempt, e, ambiguous=False)
                 self._resolve_draft(authorization, "queued")
+                self._trace_outcome(target, "failed", f"{e}; draft returned to the queue", authorization)
                 self._disable_auto_and_alert(kind, target, e)
                 raise
             except PostUnavailable as e:
                 # The post is gone. Nothing to retry, and nothing to review.
                 self._fail(intent_id, attempt, e, outcome="target_gone")
                 self._resolve_draft(authorization, "dismissed")
+                self._trace_outcome(target, "dismissed", "post gone, protected or redirected", authorization)
                 raise
             except SendNotConfirmed as e:
                 # We clicked send and could not find the reply. It may or may
@@ -192,6 +199,7 @@ class ActionBus:
                 self._fail(intent_id, attempt, e, outcome="unverified")
                 self._resolve_draft(authorization, "needs_review",
                                     charge_governor=kind)
+                self._trace_outcome(target, "needs_review", "clicked send, reply not found afterwards", authorization)
                 notifier.alert("send_unverified",
                                f"Could not confirm a reply to {target} was posted")
                 raise
@@ -479,6 +487,15 @@ class ActionBus:
             s.add(a)
             s.commit()
 
+
+    def _trace_outcome(self, target: str, stage: str, why: str, authorization) -> None:
+        try:
+            from ..ops import trace
+            with session_scope() as s:
+                trace.note(s, target, stage, why,
+                           draft_id=authorization.draft_id if authorization else None)
+        except Exception:
+            pass
 
     def _resolve_draft(self, authorization, status: str,
                        charge_governor: str = "") -> None:

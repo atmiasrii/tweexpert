@@ -4,6 +4,7 @@
 // and the numbers behind each chart are always available as a table.
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { RunsPanel } from "../components/RunsPanel";
 import { api } from "../lib/api";
 import { BarChart, LineChart, Point, Stat } from "../components/Charts";
 import {
@@ -47,6 +48,9 @@ export function Analytics() {
   return (
     <div className="space-y-4 max-w-[980px]">
       <Scoreboard q={board} />
+
+      {/* Why each tweet ended where it did, per sweep. */}
+      <RunsPanel />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

@@ -327,6 +327,9 @@ def send_due_auto(session: Session) -> list[str]:
             draft.status = "dismissed"
             session.add(draft)
             session.commit()
+            from ..ops import trace
+            trace.note(session, item["target"], "dismissed",
+                       "authorization expired before the send came due", draft_id=draft.id)
             continue
         authz = ActionAuthorization(
             id=arow.id, draft_id=arow.draft_id, issuer=arow.issuer, mode=arow.mode,
@@ -357,6 +360,9 @@ def send_due_auto(session: Session) -> list[str]:
                 draft.status = "dismissed"
                 session.add(draft)
                 session.commit()
+                from ..ops import trace
+                trace.note(session, item["target"], "dismissed",
+                           f"governor: {e.reason}", draft_id=draft.id)
         except Exception as e:
             log.warning("auto send failed: %s", e)
     # A send takes minutes, and the sweep keeps scheduling while it runs.

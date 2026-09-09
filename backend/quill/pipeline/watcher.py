@@ -37,11 +37,19 @@ def watch_once(session: Session, account: Account) -> list[pipeline.Outcome]:
         log.info("read budget exhausted; skipping @%s", account.handle)
         return []
     bus = get_bus()
+    from ..ops import trace
+    run_id = trace.start_run(session, "profile", f"@{account.handle}")
     live_state.record(session, "watching", f"reading @{account.handle}",
                       target=account.handle)
-    posts = bus.submit_read("read_user", account.handle,
-                            {"since_id": account.high_water_post_id})
+    try:
+        posts = bus.submit_read("read_user", account.handle,
+                                {"since_id": account.high_water_post_id})
+    except Exception as e:
+        trace.finish_run(session, run_id, error=str(e))
+        raise
     governor.record_read(session, 1)
+    for p in posts:
+        trace.seen(session, p, source=f"@{account.handle}")
     outcomes: list[pipeline.Outcome] = []
     newest = account.high_water_post_id
     for i, post in enumerate(posts):
@@ -57,6 +65,7 @@ def watch_once(session: Session, account: Account) -> list[pipeline.Outcome]:
         account.high_water_post_id = newest
         session.add(account)
         session.commit()
+    trace.finish_run(session, run_id, new_posts=len(outcomes))
     return outcomes
 
 
@@ -103,9 +112,17 @@ def sweep_home(session: Session) -> dict:
     # the top, so the first screen is all it can possibly need. Collecting
     # thirty posts with full scrolling instead cost ~28 seconds of the one
     # browser that sends also queue behind, forty times an hour.
-    posts = bus.submit_read("presence", "home",
-                            {"target": HOME_SWEEP_POSTS}) or []
+    from ..ops import trace
+    run_id = trace.start_run(session, "watch", "timeline")
+    try:
+        posts = bus.submit_read("presence", "home",
+                                {"target": HOME_SWEEP_POSTS}) or []
+    except Exception as e:
+        trace.finish_run(session, run_id, error=str(e))
+        raise
     governor.record_read(session, 1)
+    for p in posts:
+        trace.seen(session, p, source="timeline")
 
     op = get_settings().operator_handle.lower()
     watched = {a.handle.lower(): a for a in session.exec(
@@ -117,12 +134,18 @@ def sweep_home(session: Session) -> dict:
     # Oldest first, so the high-water mark advances monotonically.
     for post in reversed(posts):
         handle = (post.author_handle or "").lower()
-        if handle == op or handle not in watched:
+        if handle == op:
+            trace.note(session, post.x_post_id, "skipped", "own post")
+            continue
+        if handle not in watched:
+            trace.note(session, post.x_post_id, "skipped", "author not on the watchlist")
             continue
         acc = watched[handle]
         if acc.high_water_post_id and post.x_post_id <= acc.high_water_post_id:
+            trace.note(session, post.x_post_id, "skipped", "already seen")
             continue                                   # already seen (I-03)
         if post.kind == "retweet" and not post.text:
+            trace.note(session, post.x_post_id, "skipped", "bare retweet")
             continue
         oc = pipeline.process_post(session, post, acc)
         summary["polled"] += 1
@@ -130,6 +153,7 @@ def sweep_home(session: Session) -> dict:
         acc.high_water_post_id = post.x_post_id
         session.add(acc)
         session.commit()
+    trace.finish_run(session, run_id, **{k: v for k, v in summary.items() if k != "source"})
     return summary
 
 

@@ -217,17 +217,23 @@ def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
     tally = {"own": 0, "blocked": 0, "skipped": 0, "below_threshold": 0,
              "duplicate_author": 0, "cooldown": 0}
 
+    from ..ops import trace
     best: dict[str, tuple[float, object]] = {}
     for p in posts:
         handle = (p.author_handle or "").lower()
         if handle == op.lower():
             tally["own"] += 1
+            trace.note(session, p.x_post_id, "skipped", "own post")
             continue
         if handle in recent:
             tally["cooldown"] += 1
+            trace.note(session, p.x_post_id, "skipped",
+                       f"author answered inside the {cooldown_h}h cooldown")
             continue
-        if block_reason(session, p, auto=(mode == "auto")):
+        br = block_reason(session, p, auto=(mode == "auto"))
+        if br:
             tally["blocked"] += 1
+            trace.note(session, p.x_post_id, "skipped", f"blocked: {br}")
             continue
         why = relevance_mod.skip_reason(p, max_age_min=max_age)
         if why:
@@ -237,20 +243,30 @@ def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
                    "thin" if "thin" in why else
                    "saturated" if "replies" in why else "skipped")
             tally[key] = tally.get(key, 0) + 1
+            trace.note(session, p.x_post_id, "skipped", why)
             continue
         rel = relevance_mod.score(session, p, None)
         if rel < rel_min:
             tally["below_threshold"] += 1
+            trace.note(session, p.x_post_id, "skipped",
+                       f"relevance {rel} below the floor of {rel_min:g}", relevance=rel)
             continue
+        trace.note(session, p.x_post_id, "scored", f"relevance {rel}", relevance=rel)
         prev = best.get(handle)
         if prev is None:
             best[handle] = (rel, p)
         else:
             tally["duplicate_author"] += 1
+            loser = p if rel <= prev[0] else prev[1]
+            trace.note(session, loser.x_post_id, "skipped",
+                       "another post by the same author scored higher this sweep")
             if rel > prev[0]:
                 best[handle] = (rel, p)
 
     ranked = sorted(best.values(), key=lambda x: x[0], reverse=True)
+    for rel, p in ranked[per_run:]:
+        trace.note(session, p.x_post_id, "skipped",
+                   f"ranked below the {per_run} picked this sweep")
     return ranked[:per_run], tally
 
 
@@ -307,12 +323,15 @@ def _hold_or_schedule(session: Session, draft, target_x_id: str, rel: float,
             return e.reason
         # "Not yet" is not "ask a human": fall through and schedule it.
 
-    _schedule_send(session, draft, target_x_id, rel, slot)
+    send_at = _schedule_send(session, draft, target_x_id, rel, slot)
     # Approved by policy, not by a person. Set here so the draft is never left
     # reading "queued" while a send for it is already on the schedule.
     draft.status = "approved"
     session.add(draft)
     session.commit()
+    from ..ops import trace
+    trace.note(session, target_x_id, "scheduled",
+               f"send at {send_at.strftime('%H:%M:%S')} UTC", draft_id=draft.id)
     return None
 
 
@@ -345,9 +364,13 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
         return out
 
     bus = get_bus()
+    from ..ops import trace
+    run_id = trace.start_run(session, "foryou", "For You + Following")
     live_state.record(session, "watching", "reading your For You feed", target="For You")
     posts = bus.submit_read("presence", "home") or []
     governor.record_read(session, 1)
+    for p in posts:
+        trace.seen(session, p, source="For You")
     # For You is algorithmic and mostly days old: a sweep of 18 posts had 15
     # outside the 90-minute reply window. The live-sorted following feed is
     # chronological, so it is where the fresh posts actually are.
@@ -358,7 +381,10 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
             fresh = bus.submit_read("search", FOLLOWING_LIVE_QUERY) or []
             governor.record_read(session, 1)
             seen = {p.x_post_id for p in posts}
-            posts = posts + [p for p in fresh if p.x_post_id not in seen]
+            fresh = [p for p in fresh if p.x_post_id not in seen]
+            for p in fresh:
+                trace.seen(session, p, source="Following (latest)")
+            posts = posts + fresh
         except Exception as e:
             log.warning("following feed read failed: %s", e)
     out["scanned"] = len(posts)
@@ -433,6 +459,8 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
 
     # Include why posts were dropped: "picked 0 of 12" is not actionable on
     # its own, and this is the first question anyone asks.
+    trace.finish_run(session, run_id, **{k: out[k] for k in ("scanned", "picked", "sent", "discarded")},
+                     why_skipped=tally)
     log.info("for-you run: %s | skipped: %s",
              {k: out[k] for k in ("scanned", "picked", "queued", "sent", "discarded")},
              {k: v for k, v in (out.get("why_skipped") or {}).items() if v})

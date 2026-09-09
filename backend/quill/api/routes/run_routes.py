@@ -46,3 +46,32 @@ def set_target(body: dict, session: Session = Depends(get_session),
 @router.get("/run/history")
 def run_history(session: Session = Depends(get_session), _=Depends(require_auth)):
     return {"days": get_setting(session, run_session.RUN_HISTORY_KEY, [])}
+
+
+# --- the per-run, per-tweet trace ------------------------------------------
+@router.get("/runs")
+def list_runs(limit: int = 40, session: Session = Depends(get_session),
+              _=Depends(require_auth)):
+    """Every sweep, newest first, with what it saw and what came of it."""
+    from ...ops import trace
+    return {"runs": trace.runs(session, limit=min(max(limit, 1), 200))}
+
+
+@router.get("/runs/{run_id}")
+def run_trace(run_id: int, session: Session = Depends(get_session),
+              _=Depends(require_auth)):
+    """One run: every post it looked at, with the journey and the reason."""
+    from fastapi import HTTPException
+    from ...ops import trace
+    d = trace.run_detail(session, run_id)
+    if d is None:
+        raise HTTPException(404, "no such run")
+    return d
+
+
+@router.get("/trace/{x_post_id}")
+def post_trace(x_post_id: str, session: Session = Depends(get_session),
+               _=Depends(require_auth)):
+    """Everything Quill ever did with one post, across runs."""
+    from ...ops import trace
+    return {"x_post_id": x_post_id, "runs": trace.for_post(session, x_post_id)}

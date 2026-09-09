@@ -35,6 +35,11 @@ def record(session: Session, stage: str, detail: str = "", target: str = "",
     session.commit()
     _prune(session)
     _publish(stage, detail, target, post_x_id, draft_id, ok)
+    # Every decision point already passes through here with the post and the
+    # reason, so this is where the per-run trace gets its journey for free.
+    if post_x_id:
+        from ..ops import trace
+        trace.note(session, post_x_id, stage, detail, draft_id=draft_id)
 
 
 def _prune(session: Session, keep: int = 200) -> None:
