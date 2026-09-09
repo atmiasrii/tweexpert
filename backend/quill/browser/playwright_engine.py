@@ -18,7 +18,7 @@ from pathlib import Path
 from ..config import get_settings
 from ..logging_setup import get_logger
 from ..pipeline.pipeline import permalink_for
-from .base import (CanaryResult, ChallengeDetected, ParsedPost,
+from .base import (AccountGone, CanaryResult, ChallengeDetected, ParsedPost,
                    PostUnavailable, SelectorMiss, SendNotConfirmed,
                    SendRejected,
                    SessionDead)
@@ -258,11 +258,31 @@ class PlaywrightEngine:
         except (SelectorMiss, ChallengeDetected):
             raise SessionDead("logged-in marker absent")
 
+    # What X renders instead of a timeline when the handle is no longer live.
+    _DEAD_PROFILE = ("this account doesn't exist", "this account doesn’t exist",
+                     "account suspended", "these posts are protected")
+
     def read_user(self, handle: str, since_id: str = "") -> list[ParsedPost]:
         url = self.reg.surfaces["profile"]["url_template"].format(handle=handle)
         self._goto(url)
+        # A renamed, deleted, suspended or protected account has no timeline to
+        # wait for. Without this check every sweep spent the full feed wait on
+        # it and then raised, which killed the rest of the sweep.
+        gone = self._dead_profile_reason()
+        if gone:
+            raise AccountGone(handle, gone)
         self._human_scroll(3)
         return self._parse_timeline(handle, since_id)
+
+    def _dead_profile_reason(self) -> str:
+        try:
+            body = self._page.locator("main").first.inner_text(timeout=4000).lower()
+        except Exception:
+            return ""
+        for marker in self._DEAD_PROFILE:
+            if marker in body:
+                return marker.replace("’", "'")
+        return ""
 
     def _extract(self, art, surface_handle: str = "") -> ParsedPost | None:
         """One <article> -> ParsedPost. Reads the tweet's OWN author from its

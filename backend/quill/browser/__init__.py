@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from ..config import get_settings
-from .base import (BrowserEngine, CanaryResult, ChallengeDetected, ParsedPost,
+from .base import (AccountGone, BrowserEngine, CanaryResult, ChallengeDetected,
+                   ParsedPost,
                    PostUnavailable, SendNotConfirmed, SendRejected,
                    SelectorMiss, SessionDead)
 from .fixture_engine import FixtureEngine
@@ -34,6 +35,6 @@ def set_engine(engine) -> None:
     _engine = engine
 
 
-__all__ = ["get_engine", "set_engine", "BrowserEngine", "ParsedPost",
+__all__ = ["get_engine", "set_engine", "BrowserEngine", "ParsedPost", "AccountGone",
            "CanaryResult", "SessionDead", "ChallengeDetected", "SelectorMiss",
            "PostUnavailable", "SendNotConfirmed", "SendRejected"]

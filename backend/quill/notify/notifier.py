@@ -25,6 +25,7 @@ log = get_logger("quill.notify")
 ALERT_KINDS = {
     "session_dead", "challenge_detected", "canary_failed",
     "auto_disabled", "publish_failures", "worker_down",
+    "account_gone",
 }
 
 

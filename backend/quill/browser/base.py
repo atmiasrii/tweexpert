@@ -66,6 +66,17 @@ class SelectorMiss(BrowserError):
         self.screenshot_path = screenshot_path
 
 
+class AccountGone(BrowserError):
+    """A watched handle no longer has a readable timeline: renamed, deleted,
+    suspended or gone protected. Nothing to retry, and no reason to keep
+    spending a read on it every sweep."""
+
+    def __init__(self, handle: str, reason: str = ""):
+        super().__init__(f"@{handle}: {reason or 'no timeline'}")
+        self.handle = handle
+        self.reason = reason
+
+
 class PostUnavailable(BrowserError):
     """The post we were told to reply to is gone, protected, or redirected."""
 

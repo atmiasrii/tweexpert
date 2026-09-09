@@ -7,8 +7,10 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
+from ..browser import AccountGone, SelectorMiss
 from ..bus.action_bus import get_bus
 from ..config import get_settings
+from ..notify import notifier
 from ..db.models import Account
 from ..db.settings_store import get_setting
 from ..defaults import (DEEP_READS_PER_SWEEP, POLL_INTERVAL_TIER,
@@ -138,7 +140,23 @@ def watch_all(session: Session, deep_tiers: tuple[str, ...] = ("A", "B", "C")) -
     random.shuffle(accounts)                                   # randomised order (I-01)
     budget = int(get_setting(session, "deep_reads_per_sweep", DEEP_READS_PER_SWEEP))
     for acc in accounts[:budget]:
-        for oc in watch_once(session, acc):
-            summary["polled"] += 1
-            summary[oc.status] = summary.get(oc.status, 0) + 1
+        # One unreadable profile used to end the whole sweep, so the accounts
+        # after it in the shuffle were never read and the summary was lost.
+        # A dead handle and a render miss are both per-account problems.
+        try:
+            for oc in watch_once(session, acc):
+                summary["polled"] += 1
+                summary[oc.status] = summary.get(oc.status, 0) + 1
+        except AccountGone as e:
+            log.warning("@%s has no timeline (%s); deactivating", acc.handle, e.reason)
+            acc.active = False
+            session.add(acc)
+            session.commit()
+            summary["deactivated"] = summary.get("deactivated", 0) + 1
+            notifier.alert("account_gone",
+                           f"@{acc.handle} is no longer readable ({e.reason}); "
+                           "removed from the watchlist")
+        except SelectorMiss as e:
+            log.warning("deep read of @%s missed (%s); continuing", acc.handle, e)
+            summary["read_failed"] = summary.get("read_failed", 0) + 1
     return summary
