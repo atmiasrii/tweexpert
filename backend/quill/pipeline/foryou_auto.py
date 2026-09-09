@@ -275,6 +275,55 @@ def _schedule_send(session: Session, draft, target_x_id: str, rel: float,
     return send_at
 
 
+def _hold_or_schedule(session: Session, draft, target_x_id: str, rel: float,
+                      slot: int, mode: str = "auto") -> str | None:
+    """Put an auto draft on the send schedule, or say why the sweep should stop.
+
+    Returns None when the draft is scheduled, else the reason to stop.
+
+    The old version queued the draft on any governor refusal, spacing included.
+    Spacing is the most ordinary refusal there is, and the batch below is
+    staggered by exactly that spacing, so those drafts were being handed to the
+    operator to approve for no reason other than being second in a batch. That
+    is the queue that kept appearing under an account set to auto.
+    """
+    if mode != "auto":
+        draft.status = "queued"
+        session.add(draft)
+        session.commit()
+        return "assisted mode: waiting for you"
+
+    try:
+        governor.check_write_allowed(session, "reply", "foryou")
+    except governor.GovernorRefusal as e:
+        if "spacing" not in e.reason and "burst" not in e.reason:
+            # A cap, the kill switch or quiet hours mean the day is done. By
+            # the time it lifts the post is stale, so bin it rather than leave
+            # it in a queue nobody reads. Same reasoning as the confidence bar.
+            draft.status = "dismissed"
+            session.add(draft)
+            session.commit()
+            log.info("for-you sweep stopping: %s", e.reason)
+            return e.reason
+        # "Not yet" is not "ask a human": fall through and schedule it.
+
+    _schedule_send(session, draft, target_x_id, rel, slot)
+    # Approved by policy, not by a person. Set here so the draft is never left
+    # reading "queued" while a send for it is already on the schedule.
+    draft.status = "approved"
+    session.add(draft)
+    session.commit()
+    return None
+
+
+def _pending_send_at(session: Session, draft_id: int) -> datetime:
+    from ..db.settings_store import get_setting as _get
+    for item in _get(session, "_pending_auto", []):
+        if item.get("draft_id") == draft_id:
+            return datetime.fromisoformat(item["send_at"])
+    return datetime.now(timezone.utc)
+
+
 def run(session: Session, per_run: int | None = None, mode: str | None = None) -> dict:
     """One For You sweep: read the feed, pick up to `per_run` unique authors
     above the relevance floor, draft each, and either send the confident ones on
@@ -363,27 +412,16 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
                               draft_id=draft.id)
             continue
 
-        try:
-            governor.check_write_allowed(session, "reply", "foryou")
-        except governor.GovernorRefusal as e:
-            # A spacing refusal is expected mid-batch; a cap or kill-switch
-            # refusal means stop trying for this sweep.
-            draft.status = "queued"
-            session.add(draft)
-            session.commit()
-            out["queued"] += 1
-            log.info("for-you send held: %s", e.reason)
-            live_state.record(session, "queued", f"held: {e.reason}", target=p.author_handle,
-                              post_x_id=p.x_post_id, draft_id=draft.id)
-            if "spacing" not in e.reason:
-                break
-            continue
+        stop = _hold_or_schedule(session, draft, p.x_post_id, rel, slot, mode=mode)
+        if stop:
+            out["discarded"] += 1
+            live_state.record(session, "discarded", f"held: {stop}",
+                              target=p.author_handle, post_x_id=p.x_post_id,
+                              draft_id=draft.id)
+            break
 
-        send_at = _schedule_send(session, draft, p.x_post_id, rel, slot)
+        send_at = _pending_send_at(session, draft.id)
         slot += 1
-        draft.status = "approved"
-        session.add(draft)
-        session.commit()
         out["sent"] += 1
         out["replies"].append({"author": p.author_handle, "text": draft.final_text,
                                "status": "scheduled", "at": send_at.isoformat(),

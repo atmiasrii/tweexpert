@@ -349,8 +349,12 @@ def send_due_auto(session: Session) -> list[str]:
                 log.info("auto send deferred: %s", e.reason)
                 remaining.append(item)
             else:
+                # A cap, the kill switch or quiet hours: the day is over for
+                # this reply. Handing it to the operator only builds a queue of
+                # stale posts under an account that is supposed to be hands
+                # off, so bin it and say so.
                 log.info("auto send stood down: %s", e.reason)
-                draft.status = "queued"
+                draft.status = "dismissed"
                 session.add(draft)
                 session.commit()
         except Exception as e:
