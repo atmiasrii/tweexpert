@@ -24,6 +24,13 @@ def setup_logging(data_dir: Path, level: int = logging.INFO) -> Path:
     )
     root = logging.getLogger()
     root.setLevel(level)
+    # Two libraries drown the log. httpx prints every model call, thousands a
+    # day, and the trace records what those calls decided. APScheduler warns
+    # each time a one-minute checker overlaps a ten-minute sweep, which is the
+    # design, not a fault. Real errors from both still come through.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler.scheduler").setLevel(logging.ERROR)
 
     fh = RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=5)
     fh.setFormatter(fmt)
