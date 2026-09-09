@@ -129,7 +129,7 @@ class FixtureEngine:
                                   w["text"], likes=2, views=50)
         return None
 
-    def presence(self, kind: str) -> list[ParsedPost]:
+    def presence(self, kind: str, target: int | None = None) -> list[ParsedPost]:
         self._guard()
         # scrolling home surfaces a feed of posts; feeds discovery (H-05) and
         # the For-You loop. Interleave authors so it looks like a real feed.

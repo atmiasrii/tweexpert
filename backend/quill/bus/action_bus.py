@@ -338,6 +338,9 @@ class ActionBus:
         if kind == "metrics":
             return engine.metrics(target)
         if kind == "presence":
+            depth = payload.get("target")
+            if depth:
+                return engine.presence(target or "home", target=depth)
             return engine.presence(target or "home")
         if kind == "canary":
             return engine.canary()

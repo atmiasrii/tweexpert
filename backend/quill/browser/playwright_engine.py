@@ -488,10 +488,21 @@ class PlaywrightEngine:
     def metrics(self, x_post_id: str) -> ParsedPost | None:
         return None  # parsed from own-post pages in production
 
-    def presence(self, kind: str) -> list[ParsedPost]:
+    # A shallow read stops after this many scrolls. The watch sweep runs every
+    # 90 seconds and only wants what is new, which is at the top of the feed;
+    # scrolling thirty posts deep for that cost ~28 seconds of the one browser
+    # everything else queues behind, 40 times an hour.
+    SHALLOW_ROUNDS = 2
+
+    def presence(self, kind: str, target: int | None = None) -> list[ParsedPost]:
         # The For-You / home feed: collect the real feed with per-tweet authors.
         self._goto(self.reg.surfaces["home"]["url"])
-        return self._collect_feed(surface_handle="", target=self.FEED_TARGET)
+        if target is None:
+            return self._collect_feed(surface_handle="", target=self.FEED_TARGET)
+        # Cap the rounds too. Asking for fewer posts but leaving the scroll
+        # budget alone would keep scrolling until the target was met anyway.
+        return self._collect_feed(surface_handle="", target=target,
+                                  rounds=self.SHALLOW_ROUNDS)
 
     def following(self, handle: str = "") -> list[tuple[str, str, str]]:
         """Scrape who the operator follows, for the live watchlist import."""

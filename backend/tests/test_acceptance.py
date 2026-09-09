@@ -419,6 +419,13 @@ def test_t15_feedback_rows_and_dpo_export(session):
     from quill.db.models import Feedback, Post
     from quill.learning import feedback as fb
     from quill.pipeline.approve import approve_draft, dismiss_draft
+    # Approving is a write, so the governor gets a say. Without pinning the
+    # quiet window this test passed by daylight and failed after 23:30.
+    from quill.governor import governor
+    from quill.db.settings_store import set_setting as _set
+    _now = governor.local_now()
+    _set(session, "quiet_start", f"{(_now.hour + 3) % 24:02d}:00")
+    _set(session, "quiet_end", f"{(_now.hour + 3) % 24:02d}:01")
     # build a queued draft with candidates
     post = Post(x_post_id="1900000000000000001", author_handle="simonw",
                 text="structured output is hard")

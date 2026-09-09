@@ -21,6 +21,11 @@ from . import live_state, pipeline
 
 log = get_logger("quill.watcher")
 
+# How many posts the 90-second timeline sweep collects. Enough to cover a busy
+# minute and a half on the watchlist, shallow enough not to monopolise the one
+# browser that sends also queue behind.
+HOME_SWEEP_POSTS = 10
+
 
 def poll_interval(account: Account) -> int:
     base = account.poll_interval_s or POLL_INTERVAL_TIER.get(account.tier, 1500)
@@ -94,7 +99,12 @@ def sweep_home(session: Session) -> dict:
     bus = get_bus()
     live_state.record(session, "watching", "checking your timeline for new posts",
                       target="timeline")
-    posts = bus.submit_read("presence", "home") or []
+    # Shallow on purpose. This runs every 90 seconds and new posts arrive at
+    # the top, so the first screen is all it can possibly need. Collecting
+    # thirty posts with full scrolling instead cost ~28 seconds of the one
+    # browser that sends also queue behind, forty times an hour.
+    posts = bus.submit_read("presence", "home",
+                            {"target": HOME_SWEEP_POSTS}) or []
     governor.record_read(session, 1)
 
     op = get_settings().operator_handle.lower()
