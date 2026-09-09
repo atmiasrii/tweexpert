@@ -314,6 +314,20 @@ def send_due_auto(session: Session) -> list[str]:
         draft = session.get(Draft, item["draft_id"])
         if not arow or not draft or arow.consumed_at is not None:
             continue
+        # An authorization that ran out is the overnight case: the process was
+        # down when the send came due, and by morning the post is a day old.
+        # Dropping the item silently left the draft in "approved" with nothing
+        # pointing at it, which is how drafts went missing for days.
+        expires = arow.expires_at
+        if expires is not None and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires is not None and expires <= now:
+            log.info("auto send expired: draft %s, the reply window has closed",
+                     draft.id)
+            draft.status = "dismissed"
+            session.add(draft)
+            session.commit()
+            continue
         authz = ActionAuthorization(
             id=arow.id, draft_id=arow.draft_id, issuer=arow.issuer, mode=arow.mode,
             reasons=json.loads(arow.reasons_json), issued_at=arow.issued_at,
