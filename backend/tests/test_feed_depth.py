@@ -51,8 +51,11 @@ def test_the_engine_honours_the_requested_depth(monkeypatch):
         captured["rounds"] = rounds
         return []
 
+    import contextlib
     monkeypatch.setattr(PlaywrightEngine, "_collect_feed", fake_collect)
-    monkeypatch.setattr(PlaywrightEngine, "_goto", lambda self, url: None)
+    # Reads now happen on a parked feed tab; stub the tab swap, not navigation.
+    monkeypatch.setattr(PlaywrightEngine, "_on_feed",
+                        lambda self, name, url: contextlib.nullcontext())
     eng = PlaywrightEngine.__new__(PlaywrightEngine)
     eng.reg = type("R", (), {"surfaces": {"home": {"url": "https://x.com/home"}}})()
 

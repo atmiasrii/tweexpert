@@ -118,6 +118,11 @@ class PlaywrightEngine:
         self._ctx.set_default_timeout(self.ACTION_TIMEOUT_MS)
         self._ctx.set_default_navigation_timeout(45000)
         self._page = self._pick_page()
+        # The page replies and profile reads drive. Feeds get their own tabs
+        # (below) so a reply never navigates the feed away, and the next read
+        # does not start from a cold home page and re-scroll from the top.
+        self._work = self._page
+        self._feeds: dict = {}
 
     def _pick_page(self):
         """One page to drive, even if a restore reopened several.
@@ -511,9 +516,11 @@ class PlaywrightEngine:
         return self._parse_timeline("", since_id="")[:depth]
 
     def search(self, query: str) -> list[ParsedPost]:
+        # The live-sorted search is the "Latest" page: newest posts from the
+        # accounts the operator follows. It gets a parked tab of its own.
         url = self.reg.surfaces["search"]["url_template"].format(query=query)
-        self._goto(url)
-        return self._collect_feed(surface_handle="", target=25)
+        with self._on_feed("latest", url):
+            return self._collect_feed(surface_handle="", target=25)
 
     def notifications(self) -> list[ParsedPost]:
         self._goto(self.reg.surfaces["notifications"]["url"])
@@ -521,6 +528,45 @@ class PlaywrightEngine:
 
     def metrics(self, x_post_id: str) -> ParsedPost | None:
         return None  # parsed from own-post pages in production
+
+    def _feed_page(self, name: str, url: str):
+        """The parked tab for one feed, opened or refreshed to `url`.
+
+        Keeping a tab per feed is what lets the For You and Latest surfaces
+        stay open: reads refresh in place instead of navigating the single
+        page back and forth between the feed and whichever post was just
+        replied to. A tab Chromium dropped is simply opened again.
+        """
+        ctx = getattr(self, "_ctx", None)
+        page = (getattr(self, "_feeds", None) or {}).get(name)
+        if page is None or page.is_closed():
+            page = ctx.new_page()
+            self._feeds[name] = page
+            page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        elif (page.url or "").split("?")[0].rstrip("/") == url.split("?")[0].rstrip("/")                 and (page.url or "").split("?")[1:] == url.split("?")[1:]:
+            # Already on this feed: a reload is what surfaces the new posts
+            # at the top without a cold render of the whole app shell.
+            page.reload(wait_until="domcontentloaded", timeout=45000)
+        else:
+            page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        time.sleep(random.uniform(1.0, 2.5))
+        return page
+
+    def _on_feed(self, name: str, url: str):
+        """Context manager: drive the parked tab for `name` as self._page."""
+        engine = self
+
+        class _Swap:
+            def __enter__(self_):
+                self_.prev = engine._page
+                engine._page = engine._feed_page(name, url)
+                engine._check_challenges()
+                return engine._page
+
+            def __exit__(self_, *exc):
+                engine._page = self_.prev
+                return False
+        return _Swap()
 
     # A shallow read stops after this many scrolls. The watch sweep runs every
     # 90 seconds and only wants what is new, which is at the top of the feed;
@@ -530,13 +576,13 @@ class PlaywrightEngine:
 
     def presence(self, kind: str, target: int | None = None) -> list[ParsedPost]:
         # The For-You / home feed: collect the real feed with per-tweet authors.
-        self._goto(self.reg.surfaces["home"]["url"])
-        if target is None:
-            return self._collect_feed(surface_handle="", target=self.FEED_TARGET)
-        # Cap the rounds too. Asking for fewer posts but leaving the scroll
-        # budget alone would keep scrolling until the target was met anyway.
-        return self._collect_feed(surface_handle="", target=target,
-                                  rounds=self.SHALLOW_ROUNDS)
+        with self._on_feed("home", self.reg.surfaces["home"]["url"]):
+            if target is None:
+                return self._collect_feed(surface_handle="", target=self.FEED_TARGET)
+            # Cap the rounds too. Asking for fewer posts but leaving the scroll
+            # budget alone would keep scrolling until the target was met anyway.
+            return self._collect_feed(surface_handle="", target=target,
+                                      rounds=self.SHALLOW_ROUNDS)
 
     def following(self, handle: str = "") -> list[tuple[str, str, str]]:
         """Scrape who the operator follows, for the live watchlist import."""
