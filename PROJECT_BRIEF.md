@@ -108,6 +108,9 @@ Measured, not assumed. In order of cost:
 4. **Write spacing.** Five minutes between replies caps the day at ~120. This
    has never been the binding constraint.
 
+Fixed since first measured: the watch sweep reads the first screen only, the
+timeline is not read during quiet hours, and feeds live in parked tabs.
+
 A fixed embedding bug is worth recording: the similarity guard re-embedded all
 one hundred past replies for every candidate, 6,631 embedding calls against 636
 writing calls in one evening. Caching them cut For You sweeps from 27 minutes
@@ -130,16 +133,25 @@ apart to 9.
   today's run card, watchlist, analytics.
 - **Recovery.** Engine rebuild on a dropped page, a call budget that kills a
   wedged Playwright driver, startup reconcile that settles sends left in
-  flight, dead-handle detection, and a home-read guard.
+  flight, dead-handle detection, a home-read guard, and one Retry click on
+  X's "Something went wrong" page before a read counts as a miss.
+- **Trace.** A row per post per run: source, metrics, score, every stage in
+  order and the last terminal reason, plus a JSON line per event on disk under
+  `data/traces/`. `GET /api/runs`, `GET /api/runs/{id}`, `GET /api/trace/{post}`
+  and a Runs panel on the Analytics tab. "Why did this tweet not get a reply"
+  is one click.
+- **Parked tabs.** The home feed and the live "Latest" search each keep a tab
+  and refresh in place. The write page is never navigated for a read. Still
+  one thread and one actor: several tabs, driven in turn.
 
 ---
 
 ## Known gaps
 
-- Feed reading is far more expensive than it needs to be, and every read is
-  serialised behind one browser page.
-- Post selection does not yet use author follower counts or a post's own
-  engagement velocity; account tier stands in for both.
+- Reads are still serialised through one actor thread. True concurrency would
+  need the async Playwright API and would look inhuman; not planned.
+- Post selection uses a post's own like velocity (momentum) but not author
+  follower counts; account tier stands in for those.
 - The confidence bar bins roughly seven in ten drafts. Whether that is the
   right trade is an open product question.
 - One reply on 8 September contained a fabricated anecdote. The guard that
