@@ -178,11 +178,25 @@ class ActionBus:
             except SelectorMiss as e:
                 # Every selector the reply path can miss (target article,
                 # composer, send button) is looked up BEFORE the send click,
-                # so nothing was posted. The draft is safe to try again; it
-                # used to sit in "approved" forever with nothing pointing at it.
+                # so nothing was posted and the draft is safe to try again.
+                # A miss is usually a cold page still on X's splash screen,
+                # so look once more before giving up on it.
+                if attempt < 2:
+                    log.warning("write attempt %d missed %s; one more look", attempt, e.key)
+                    time.sleep(min(2 ** attempt, 0.1))
+                    continue
                 self._fail(intent_id, attempt, e, ambiguous=False)
-                self._resolve_draft(authorization, "queued")
-                self._trace_outcome(target, "failed", f"{e}; draft returned to the queue", authorization)
+                if authorization is not None and authorization.issuer == "policy":
+                    # Auto means auto: an unattended draft goes back on the
+                    # schedule a few minutes out, not into the queue a person
+                    # would have to work through.
+                    self._reschedule(authorization, target, content, f"{e}")
+                    self._trace_outcome(target, "scheduled",
+                                        f"{e}; back on the schedule", authorization)
+                else:
+                    self._resolve_draft(authorization, "queued")
+                    self._trace_outcome(target, "failed",
+                                        f"{e}; draft returned to the queue", authorization)
                 self._disable_auto_and_alert(kind, target, e)
                 raise
             except PostUnavailable as e:
@@ -487,6 +501,29 @@ class ActionBus:
             s.add(a)
             s.commit()
 
+
+    def _reschedule(self, authorization, target: str, content: str, why: str,
+                    delay_s: int = 180) -> None:
+        """Put an unattended draft back on the send schedule with a fresh
+        authorization, a few minutes out."""
+        try:
+            from ..bus.authz import issue
+            from ..pipeline.pipeline import _stash_pending
+            with session_scope() as s:
+                d = s.get(Draft, authorization.draft_id) if authorization.draft_id else None
+                if d is None:
+                    return
+                az = issue(s, d.id, issuer="policy", mode=authorization.mode,
+                           reasons=[f"retry: {why}"], ttl_s=3600)
+                _stash_pending(s, d.id, az.id, target,
+                               datetime.now(timezone.utc) + timedelta(seconds=delay_s))
+                d.status = "approved"
+                s.add(d)
+                s.commit()
+                log.info("draft %s back on the schedule in %ds: %s", d.id, delay_s, why)
+        except Exception as e:
+            log.warning("could not reschedule after a miss: %s", e)
+            self._resolve_draft(authorization, "queued")
 
     def _trace_outcome(self, target: str, stage: str, why: str, authorization) -> None:
         try:

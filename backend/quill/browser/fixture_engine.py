@@ -167,6 +167,9 @@ class FixtureEngine:
             raise PostUnavailable(parent_x_id)
         if self.reply_outcome == "rejected":
             raise SendRejected("fixture: rejected")
+        if self.reply_outcome == "miss":
+            from .base import SelectorMiss
+            raise SelectorMiss("target_article")
         if self.reply_outcome == "unverified":
             raise SendNotConfirmed(parent_x_id)
         pid = str(next(_ids))

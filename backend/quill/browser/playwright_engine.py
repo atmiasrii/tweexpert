@@ -676,8 +676,11 @@ class PlaywrightEngine:
                 raise PostUnavailable(x_post_id, self._capture("post_unavailable"))
             time.sleep(1.5)
         try:
+            # A cold load of a post page shows X's black splash for longer
+            # than a warm one; a capture caught one still on the splash at
+            # the 15-second mark. Give it the feed budget.
             self._page.wait_for_selector('article[data-testid="tweet"]',
-                                         timeout=self.WRITE_WAIT_MS)
+                                         timeout=self.FEED_WAIT_MS)
         except Exception:
             pass
         if f"/status/{x_post_id}" not in (self._page.url or ""):

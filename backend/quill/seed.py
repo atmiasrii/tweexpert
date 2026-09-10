@@ -67,6 +67,14 @@ def seed(session: Session) -> dict:
 def populate_pipeline(session: Session) -> dict:
     """Run one watch pass so the queue + shadow log have content."""
     from .pipeline import discovery, watcher
+    from .db.models import Account
+    from .db.settings_store import set_setting
+    from sqlmodel import select
+    # A demonstration pass reads every seeded account. The live sweep reads a
+    # shuffled few per pass as a backstop behind the timeline, and with that
+    # budget this helper produced a queue only some of the time.
+    n = len(session.exec(select(Account).where(Account.active == True)).all())  # noqa: E712
+    set_setting(session, "deep_reads_per_sweep", max(n, 1))
     summary = watcher.watch_all(session)
     discovery.run_saved_searches(session)
     discovery.ingest_notifications(session)      # V-04
