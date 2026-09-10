@@ -42,7 +42,15 @@ K_MAX_AGE_MIN = "foryou_max_age_min"
 # Both of these are calibrated by scripts/calibrate_threshold.py rather than
 # guessed; these are only the starting points.
 FORYOU_RELEVANCE_MIN = 55.0
-FORYOU_AUTO_MIN = 18
+# 17, not 18, and the reason is in the numbers. Across 125 live drafts the
+# critic scored adds_something 4 in 121, reads_human 4 in 118 and
+# low_embarrassment_risk 5 in 121: three axes that barely move. The only
+# thing separating a sent draft (18) from a binned one (17) was whether
+# sounds_like_operator got a 5 or a 4 from a 14B model, and 88 of the 98
+# binned drafts were identical to the sent ones on every other axis. A bar at
+# 18 was not strictness, it was one noisy axis deciding. The nine guards, the
+# similarity check and the unsafe-content gate all still apply below this.
+FORYOU_AUTO_MIN = 17
 FORYOU_MAX_AGE_MIN = 360     # six hours; see relevance.skip_reason
 
 DEFAULTS = {K_ENABLED: False, K_INTERVAL: 90, K_PER_RUN: FORYOU_PER_RUN,

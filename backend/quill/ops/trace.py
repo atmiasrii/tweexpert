@@ -100,7 +100,14 @@ def note(session: Session, x_post_id: str, stage: str, detail: str = "",
         return
     try:
         run_id = run_id or current_run_id()
-        row = _row(session, run_id, x_post_id) if run_id else _latest(session, x_post_id)
+        if run_id:
+            row = _row(session, run_id, x_post_id)
+        else:
+            # No run open: this is a send or a reconcile landing later. Credit
+            # the run that scheduled the draft, not whichever later sweep saw
+            # the same post again and skipped it as already answered.
+            row = _for_draft(session, draft_id) if draft_id else None
+            row = row or _latest(session, x_post_id)
         if row is None:
             if run_id is None:
                 return                        # nothing to attach to
@@ -174,6 +181,11 @@ def _recount(session: Session, run: SweepRun) -> None:
 def _row(session: Session, run_id: int, x_post_id: str) -> TweetTrace | None:
     return session.exec(select(TweetTrace).where(
         TweetTrace.run_id == run_id, TweetTrace.x_post_id == x_post_id)).first()
+
+
+def _for_draft(session: Session, draft_id: int) -> TweetTrace | None:
+    return session.exec(select(TweetTrace).where(TweetTrace.draft_id == draft_id)
+                        .order_by(TweetTrace.id.desc())).first()
 
 
 def _latest(session: Session, x_post_id: str) -> TweetTrace | None:

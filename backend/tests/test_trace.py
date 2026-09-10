@@ -107,3 +107,24 @@ def test_events_also_land_on_disk_as_jsonl(session, tmp_path, monkeypatch):
     lines = files[0].read_text(encoding="utf-8").strip().splitlines()
     assert [__import__("json").loads(l)["event"] for l in lines] == \
         ["run_start", "seen", "run_end"]
+
+
+def test_a_send_is_credited_to_the_run_that_scheduled_it(session):
+    """A later sweep sees the same post again and skips it. The send that
+    lands afterwards must not be booked against that later run."""
+    a = trace.start_run(session, "foryou")
+    trace.seen(session, _post())
+    trace.note(session, "2100000000000000001", "scheduled", "send at 10:05", draft_id=42)
+    trace.finish_run(session, a)
+
+    b = trace.start_run(session, "foryou")
+    trace.seen(session, _post())
+    trace.note(session, "2100000000000000001", "skipped", "author answered inside the cooldown")
+    trace.finish_run(session, b)
+
+    trace.note(session, "2100000000000000001", "sent", "verified", draft_id=42,
+               sent_x_post_id="2100000000000000099")
+
+    assert trace.run_detail(session, a)["sent"] == 1
+    assert trace.run_detail(session, b)["sent"] == 0
+    assert trace.run_detail(session, b)["posts"][0]["outcome"] == "skipped"

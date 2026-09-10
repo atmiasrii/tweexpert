@@ -47,6 +47,10 @@ def test_a_new_day_archives_the_old_record(session):
 
 # ----------------------------------------------------------------- pace
 def test_halfway_through_the_window_expects_half_the_target(session):
+    # The window opens at the later of the run start and the end of quiet
+    # hours, so pin quiet hours to end before the start this test assumes.
+    set_setting(session, "quiet_start", "23:30")
+    set_setting(session, "quiet_end", "07:30")
     rec = run_session.get_or_start(session)
     rec["started_at"] = _at(rec, "10:00").isoformat()
     rec["deadline"] = "22:00"

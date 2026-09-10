@@ -32,7 +32,7 @@ Recorded because these are the requirements, not suggestions.
 | Ask | Decision |
 |---|---|
 | Persona rewritten to match the X reply research | Objective changed from "sounds good" to "earns a reply from the author". Four ranked archetypes, an 80-180 character band, a tell-list of AI phrasing, a critic that judges reply-back odds |
-| Reply quality bar | **Strict. Only clearly good replies.** Silence is an acceptable output |
+| Reply quality bar | **Strict. Only clearly good replies.** Silence is an acceptable output. The confidence bar is 17 of 20: measured over 125 live drafts, three critic axes barely move and a bar at 18 only tested whether one noisy axis scored 5. The nine guards, similarity and the unsafe gate are what enforce quality |
 | Rate limits | Written for an **X Premium** account: 120 replies/day ceiling, 5-minute minimum spacing, burst 4 per 20 min |
 | The shadow-period gate before auto | **Removed entirely** at the operator's request |
 | Approval | **Never required in auto mode.** A queue nobody reads is worse than a reply that was never sent |
@@ -103,8 +103,10 @@ Measured, not assumed. In order of cost:
 2. **Model time.** Ten posts drafted per sweep, several candidates each plus a
    critic. Around 87 chat calls per sweep.
 3. **The quality bar.** On 9 September, 100 drafts were written and 23 sent.
-   That is 71% of all model work discarded by design. It is the strict setting
-   working, and it is the largest remaining lever if volume matters more.
+   On inspection every binned draft scored exactly 17 against a bar of 18, and
+   the only axis that differed from the sent ones was `sounds_like_operator`;
+   the other three are near-constant. The bar is now 17. On 10 September the
+   morning ran at the write-spacing ceiling, one reply per five minutes.
 4. **Write spacing.** Five minutes between replies caps the day at ~120. This
    has never been the binding constraint.
 
