@@ -67,7 +67,8 @@ Recorded because these are the requirements, not suggestions.
 7. **Watch** the timeline in between for new posts from the watchlist.
 8. **Supervise.** Every minute, check that both processes are alive and
    beating, restart what is not, and compare progress against the target.
-9. **Stop at quiet hours** (23:30 to 07:30 local, with daily drift).
+9. **Stop at quiet hours** (23:30 to 07:30 local, with daily drift). Reads
+   stop too, and the intake ladder goes back to level 0 at midnight.
 
 ---
 
@@ -111,7 +112,11 @@ Measured, not assumed. In order of cost:
    has never been the binding constraint.
 
 Fixed since first measured: the watch sweep reads the first screen only, the
-timeline is not read during quiet hours, and feeds live in parked tabs.
+timeline is not read during quiet hours, feeds live in parked tabs, and a
+sweep drafts only what the send queue has room for (four waiting at most),
+reading nothing when it is full. On the morning of 10 September the run
+settled at one reply every five minutes from the moment the window opened,
+which is the spacing ceiling and the design's intended steady state.
 
 A fixed embedding bug is worth recording: the similarity guard re-embedded all
 one hundred past replies for every candidate, 6,631 embedding calls against 636
