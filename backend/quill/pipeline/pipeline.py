@@ -103,8 +103,10 @@ def backfill_post_urls(session: Session) -> int:
 
 
 def _age_seconds(post: ParsedPost) -> float:
+    # Unknown is not "just now". A missing timestamp used to read as age zero
+    # and pass every freshness gate; treat it as older than any window.
     if not post.created_at:
-        return 0.0
+        return float("inf")
     ca = post.created_at
     if ca.tzinfo is None:
         ca = ca.replace(tzinfo=timezone.utc)
@@ -331,6 +333,18 @@ def send_due_auto(session: Session) -> list[str]:
             trace.note(session, item["target"], "dismissed",
                        "authorization expired before the send came due", draft_id=draft.id)
             continue
+        # The post may have aged out while this send waited its turn. A reply
+        # under a post the feed has finished with earns nothing and reads as
+        # late, so bin it here rather than post it.
+        stale = _stale_for_send(session, item["target"])
+        if stale:
+            log.info("auto send dropped: draft %s, %s", draft.id, stale)
+            draft.status = "dismissed"
+            session.add(draft)
+            session.commit()
+            from ..ops import trace
+            trace.note(session, item["target"], "dismissed", stale, draft_id=draft.id)
+            continue
         authz = ActionAuthorization(
             id=arow.id, draft_id=arow.draft_id, issuer=arow.issuer, mode=arow.mode,
             reasons=json.loads(arow.reasons_json), issued_at=arow.issued_at,
@@ -375,6 +389,20 @@ def send_due_auto(session: Session) -> list[str]:
     added = [item for item in fresh if item["draft_id"] not in handled]
     set_setting(session, "_pending_auto", remaining + added)
     return sent
+
+
+def _stale_for_send(session: Session, x_post_id: str) -> str:
+    """Why a scheduled send should not go out now, or "" if it still should."""
+    from .foryou_auto import FORYOU_MAX_AGE_MIN as _MAX      # local: avoids a cycle
+    row = session.exec(select(Post).where(Post.x_post_id == x_post_id)).first()
+    if row is None or row.created_at is None:
+        return ""                      # nothing to judge by; the sender will look
+    ca = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=timezone.utc)
+    age_min = (datetime.now(timezone.utc) - ca).total_seconds() / 60.0
+    limit = float(get_setting(session, "foryou_max_age_min", _MAX))
+    if age_min > limit:
+        return f"stale by send time: post is {age_min:.0f} min old, window is {limit:.0f}"
+    return ""
 
 
 def _post_send_push(session, draft, x_post_id):

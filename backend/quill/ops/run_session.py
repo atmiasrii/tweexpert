@@ -67,6 +67,13 @@ def get_or_start(session: Session) -> dict:
         hist = get_setting(session, RUN_HISTORY_KEY, [])
         hist.append(rec)
         set_setting(session, RUN_HISTORY_KEY, hist[-RUN_HISTORY_DAYS:])
+        # A new day starts at level 0, and the settings must say so too. The
+        # record used to reset its level while the widened age window,
+        # relevance floor and cooldown from the night before stayed applied,
+        # so the card read "level 0" while the sweep replied to day-old posts.
+        if int(rec.get("relax_level", 0) or 0) != 0:
+            apply_level(session, 0)
+            log.info("new day: intake back to level 0 from level %s", rec.get("relax_level"))
 
     # Prefer the launcher's own stamp: the supervisor's first tick can be a
     # minute after the start, and the operator asked for the real start time.

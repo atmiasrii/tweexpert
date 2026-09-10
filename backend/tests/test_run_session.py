@@ -189,3 +189,20 @@ def test_relaxation_never_touches_the_reply_quality_bar(session):
         run_session.adjust(session, rec, {"behind_by": 99.0, "reachable": True},
                            now=now + timedelta(minutes=16 * i))
     assert get_setting(session, "foryou_auto_min") == 18
+
+
+def test_a_new_day_resets_the_applied_intake_not_only_the_record(session):
+    """Level 3 the night before left a 24-hour window in the settings after the
+    record rolled over to level 0. The sweep then replied to day-old posts."""
+    rec = run_session.get_or_start(session)
+    run_session.apply_level(session, 3)
+    rec["relax_level"] = 3
+    rec["day"] = "1999-01-01"
+    set_setting(session, run_session.RUN_KEY, rec)
+    assert get_setting(session, "foryou_max_age_min") == 1440
+
+    fresh = run_session.get_or_start(session)
+    assert fresh["relax_level"] == 0
+    assert get_setting(session, "foryou_max_age_min") == 360
+    assert get_setting(session, "foryou_relevance_min") == 40
+    assert get_setting(session, "foryou_cooldown_h") == 24

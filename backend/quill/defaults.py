@@ -79,6 +79,11 @@ CAP_REPLIES_FORYOU = CAP_REPLIES_TOTAL
 # author is off-limits afterwards. Author-level cooldown did not exist before,
 # so one sweep could hand the same handle three replies.
 FORYOU_PER_RUN = 10
+# How many scheduled sends may wait at once. Spacing drains two per ten-minute
+# sweep; with the bar recalibrated a sweep could schedule seven, so the queue
+# grew by five a sweep and later slots went to posts hours old by the time
+# they fired. Drafting only what can go out soon also saves the model time.
+FORYOU_MAX_PENDING = 4
 FORYOU_AUTHOR_COOLDOWN_H = 24
 # Unknown For You authors are not on the watchlist, so they have no tier. The
 # old code fell through to "C" (0.5), which capped their score below the auto

@@ -20,7 +20,7 @@ from ..bus.authz import ActionAuthorization, issue
 from ..config import get_settings
 from ..db.models import Draft, Post
 from ..defaults import (CRITIC_MIN_AUTO, FORYOU_AUTHOR_COOLDOWN_H,
-                        FORYOU_PER_RUN, MIN_WRITE_SPACING_S)
+                        FORYOU_MAX_PENDING, FORYOU_PER_RUN, MIN_WRITE_SPACING_S)
 from ..db.settings_store import get_setting, set_setting
 from ..governor import governor
 from ..logging_setup import get_logger
@@ -243,6 +243,17 @@ def _pick_batch(session: Session, posts: list, mode: str, per_run: int,
             tally["blocked"] += 1
             trace.note(session, p.x_post_id, "skipped", f"blocked: {br}")
             continue
+        # A card without a parsable timestamp used to count as an hour old
+        # and walk through the age gate; day-old posts were being replied to.
+        # Take the time from the stored row if we have one, else fail closed.
+        if p.created_at is None:
+            row = session.exec(select(Post).where(Post.x_post_id == p.x_post_id)).first()
+            if row is not None and row.created_at is not None:
+                p.created_at = row.created_at
+        if p.created_at is None:
+            tally["no_timestamp"] = tally.get("no_timestamp", 0) + 1
+            trace.note(session, p.x_post_id, "skipped", "no timestamp on the card")
+            continue
         why = relevance_mod.skip_reason(p, max_age_min=max_age)
         if why:
             # Split by gate: "skipped 48" says nothing; "old 40, thin 8" does.
@@ -397,8 +408,21 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
             log.warning("following feed read failed: %s", e)
     out["scanned"] = len(posts)
 
+    # Only draft what can actually go out before it goes stale. The schedule
+    # drains one send per spacing interval; anything picked beyond that waits,
+    # and a reply to a post that is hours old by the time its slot fires is
+    # not worth the model time it cost.
+    pending = get_setting(session, "_pending_auto", [])
+    max_pending = int(get_setting(session, "foryou_max_pending", FORYOU_MAX_PENDING))
+    headroom = max(0, max_pending - len(pending))
+    if mode == "auto" and headroom < per_run:
+        log.info("for-you: %d send(s) already waiting, drafting at most %d this sweep",
+                 len(pending), headroom)
+        per_run = headroom
+
     batch, tally = _pick_batch(session, posts, mode, per_run, rel_min, cooldown_h)
     out["why_skipped"] = tally
+    out["headroom"] = headroom
     slot = 0
 
     for rel, p in batch:
