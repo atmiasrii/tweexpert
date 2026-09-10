@@ -97,13 +97,13 @@ def test_the_sweep_drafts_only_what_the_backlog_has_room_for(session, monkeypatc
     set_setting(session, "_pending_auto", [{"draft_id": i, "authz_id": i, "target": str(i),
                                             "send_at": "2099-01-01T00:00:00+00:00"}
                                            for i in range(4)])
-    seen = {}
+    reads = []
+    from quill.bus import action_bus
+    bus = action_bus.get_bus()
+    monkeypatch.setattr(bus, "submit_read", lambda *a, **k: reads.append(a) or [])
 
-    def fake_pick(session_, posts, mode, per_run, rel_min, cooldown_h):
-        seen["per_run"] = per_run
-        return [], {}
-
-    monkeypatch.setattr(foryou_auto, "_pick_batch", fake_pick)
     out = foryou_auto.run(session, per_run=10, mode="auto")
-    assert seen["per_run"] == 0
     assert out["headroom"] == 0
+    assert out["scanned"] == 0
+    assert reads == [], "a full queue must not cost a feed read"
+    assert out["why_skipped"] == {"send_queue_full": 1}

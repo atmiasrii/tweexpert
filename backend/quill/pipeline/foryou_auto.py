@@ -382,6 +382,26 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
         out["why_skipped"] = {"read_budget": 1}
         return out
 
+    # Only draft what can actually go out before it goes stale. The schedule
+    # drains one send per spacing interval; anything picked beyond that waits,
+    # and a reply to a post that is hours old by the time its slot fires is
+    # not worth the model time it cost. When the queue is full, do not even
+    # read the feeds: forty seconds of browser for nothing, every ten minutes.
+    pending = get_setting(session, "_pending_auto", [])
+    max_pending = int(get_setting(session, "foryou_max_pending", FORYOU_MAX_PENDING))
+    headroom = max(0, max_pending - len(pending)) if mode == "auto" else per_run
+    if mode == "auto" and headroom < per_run:
+        log.info("for-you: %d send(s) already waiting, drafting at most %d this sweep",
+                 len(pending), headroom)
+        per_run = headroom
+    if headroom == 0:
+        out["headroom"] = 0
+        out["why_skipped"] = {"send_queue_full": 1}
+        live_state.record(session, "watching",
+                          f"send queue full ({len(pending)} waiting); not reading the feed",
+                          target="For You")
+        return out
+
     bus = get_bus()
     from ..ops import trace
     run_id = trace.start_run(session, "foryou", "For You + Following")
@@ -407,18 +427,6 @@ def run(session: Session, per_run: int | None = None, mode: str | None = None) -
         except Exception as e:
             log.warning("following feed read failed: %s", e)
     out["scanned"] = len(posts)
-
-    # Only draft what can actually go out before it goes stale. The schedule
-    # drains one send per spacing interval; anything picked beyond that waits,
-    # and a reply to a post that is hours old by the time its slot fires is
-    # not worth the model time it cost.
-    pending = get_setting(session, "_pending_auto", [])
-    max_pending = int(get_setting(session, "foryou_max_pending", FORYOU_MAX_PENDING))
-    headroom = max(0, max_pending - len(pending))
-    if mode == "auto" and headroom < per_run:
-        log.info("for-you: %d send(s) already waiting, drafting at most %d this sweep",
-                 len(pending), headroom)
-        per_run = headroom
 
     batch, tally = _pick_batch(session, posts, mode, per_run, rel_min, cooldown_h)
     out["why_skipped"] = tally
