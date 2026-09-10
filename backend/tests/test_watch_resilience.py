@@ -9,6 +9,10 @@ from quill.pipeline import watcher
 
 
 def _accounts(session, n=3, tier="A"):
+    # These tests count every account being read, so the per-sweep budget
+    # must cover all of them regardless of the production default.
+    from quill.db.settings_store import set_setting
+    set_setting(session, "deep_reads_per_sweep", n)
     made = []
     for i in range(n):
         a = Account(handle=f"user{i}", tier=tier, mode="assisted", active=True)

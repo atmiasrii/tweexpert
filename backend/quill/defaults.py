@@ -228,7 +228,12 @@ UNSAFE_PATTERNS = [
 # Watcher: the home sweep covers the whole watchlist in one read; these are the
 # extra direct profile reads per sweep, as a backstop for tier A posts the
 # timeline buries.
-DEEP_READS_PER_SWEEP = 4
+# Two, not four. The live "Latest" search already covers every followed
+# account newest-first in one read; these direct profile reads are a backstop
+# for posts the algorithm hides. At four per 90-second sweep they took up to
+# two thirds of the browser's time and, in the first traced hour, found nothing
+# the other reads had not.
+DEEP_READS_PER_SWEEP = 2
 
 # --- unattended run (S22) ------------------------------------------------
 RUN_TARGET_REPLIES = 40             # replies the day owes

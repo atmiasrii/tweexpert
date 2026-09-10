@@ -161,7 +161,9 @@ def for_post(session: Session, x_post_id: str) -> list[dict]:
 def _recount(session: Session, run: SweepRun) -> None:
     rows = session.exec(select(TweetTrace).where(TweetTrace.run_id == run.id)).all()
     run.seen = len(rows)
-    run.picked = sum(1 for r in rows if r.relevance is not None)
+    # Picked means it went forward, not merely that it was scored: a post
+    # binned for being under the relevance floor also carries a score.
+    run.picked = sum(1 for r in rows if r.relevance is not None and r.outcome != "skipped")
     run.drafted = sum(1 for r in rows if r.draft_id)
     run.scheduled = sum(1 for r in rows if r.outcome == "scheduled")
     run.sent = sum(1 for r in rows if r.outcome == "sent")
