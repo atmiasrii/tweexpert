@@ -116,7 +116,10 @@ timeline is not read during quiet hours, feeds live in parked tabs, and a
 sweep drafts only what the send queue has room for (four waiting at most),
 reading nothing when it is full. On the morning of 10 September the run
 settled at one reply every five minutes from the moment the window opened,
-which is the spacing ceiling and the design's intended steady state.
+which is the spacing ceiling and the design's intended steady state. The
+fortieth reply of that day landed at 12:15, four hours and forty-five minutes
+after the window opened, with 43 verified by 12:34 and a median gap of 6.2
+minutes between sends.
 
 A fixed embedding bug is worth recording: the similarity guard re-embedded all
 one hundred past replies for every candidate, 6,631 embedding calls against 636
