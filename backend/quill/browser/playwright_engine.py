@@ -542,6 +542,8 @@ class PlaywrightEngine:
         if page is None or page.is_closed():
             page = ctx.new_page()
             self._feeds[name] = page
+            open_tabs = [p for p in (getattr(ctx, "pages", None) or []) if not p.is_closed()]
+            log.info("opened parked tab '%s' (%d tabs in the context)", name, len(open_tabs))
             page.goto(url, wait_until="domcontentloaded", timeout=45000)
         elif (page.url or "").split("?")[0].rstrip("/") == url.split("?")[0].rstrip("/")                 and (page.url or "").split("?")[1:] == url.split("?")[1:]:
             # Already on this feed: a reload is what surfaces the new posts
